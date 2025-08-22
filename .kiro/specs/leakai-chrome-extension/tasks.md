@@ -68,9 +68,9 @@
     - **Verify:** Detector flags known API key patterns and high-entropy strings above threshold
     - _Requirements: 5.3_
 
-- [ ] 4. Implement cryptocurrency detection patterns
+- [x] 4. Implement cryptocurrency detection patterns
 
-  - [ ] 4.1 Create seed phrase detection
+  - [x] 4.1 Create seed phrase detection
 
     - Write seed phrase detector using BIP-39 word list
     - Implement 12+ word sequence validation
@@ -79,7 +79,7 @@
     - **Verify:** Detector flags valid seed phrases as HIGH risk, ignores random word sequences
     - _Requirements: 5.4_
 
-  - [ ] 4.2 Create private key detection
+  - [x] 4.2 Create private key detection
 
     - Write private key detector for various formats (hex, WIF, PEM)
     - Implement pattern matching for 0x + 64 hex and -----BEGIN PRIVATE KEY-----
@@ -88,7 +88,7 @@
     - **Verify:** Detector flags all private key formats as HIGH risk
     - _Requirements: 5.4_
 
-  - [ ] 4.3 Create cryptocurrency address detection
+  - [x] 4.3 Create cryptocurrency address detection
     - Write address detector for Bitcoin, Ethereum, and common formats
     - Implement context analysis for "send", "refund", personal context
     - Add appropriate risk scoring based on context
