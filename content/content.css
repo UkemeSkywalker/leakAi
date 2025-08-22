@@ -1,7 +1,470 @@
 /* LeakAI Content Script Styles */
 /* Styles for underlines, tooltips, and UI elements */
 
-/* Placeholder styles - will be implemented in later tasks */
-.leakai-detection {
-  /* Detection underline styles will be added here */
+/* Base styles for elements with detections - subtle underline approach */
+.leakai-has-detections {
+  position: relative;
+}
+
+/* Alternative approach using border-bottom for better compatibility */
+.leakai-has-detections.use-border {
+  border-bottom: 2px solid transparent !important;
+  border-bottom-style: solid !important;
+}
+
+.leakai-has-detections.use-border.leakai-risk-high {
+  border-bottom-color: #dc3545 !important;
+}
+
+.leakai-has-detections.use-border.leakai-risk-medium {
+  border-bottom-color: #ffc107 !important;
+}
+
+.leakai-has-detections.use-border.leakai-risk-low {
+  border-bottom-color: #007bff !important;
+}
+
+.leakai-has-detections.use-border.leakai-category-pii {
+  border-bottom-style: dotted !important;
+  border-bottom-color: #6c757d !important;
+}
+
+.leakai-has-detections.use-border.leakai-category-health {
+  border-bottom-style: dotted !important;
+  border-bottom-color: #fd7e14 !important;
+}
+
+/* Create subtle underline effect using pseudo-element */
+.leakai-has-detections::after {
+  content: '';
+  position: absolute;
+  bottom: 0px; /* Moved to bottom edge */
+  left: 0px;   /* Full width */
+  right: 0px;  /* Full width */
+  height: 3px; /* Thicker line */
+  border-radius: 1px;
+  opacity: 0.9; /* More visible */
+  pointer-events: none;
+  transition: opacity 0.2s ease, height 0.2s ease;
+  z-index: 1;
+  background: #dc3545; /* Default red background for visibility */
+}
+
+/* More precise positioning for different input types */
+input.leakai-has-detections::after,
+textarea.leakai-has-detections::after {
+  bottom: 3px;
+  left: 6px;
+  right: 6px;
+}
+
+/* Special handling for contenteditable elements */
+[contenteditable].leakai-has-detections::after {
+  bottom: 2px;
+  left: 4px;
+  right: 4px;
+}
+
+/* Gmail-specific adjustments */
+div[contenteditable].leakai-has-detections::after,
+div[role="textbox"].leakai-has-detections::after {
+  bottom: 0px;
+  left: 0px;
+  right: 0px;
+  height: 3px;
+  opacity: 0.8;
+}
+
+/* Risk level specific underline colors */
+.leakai-risk-high::after {
+  background: #dc3545 !important; /* Solid red for high risk */
+}
+
+.leakai-risk-medium::after {
+  background: #ffc107 !important; /* Solid amber for medium risk */
+}
+
+.leakai-risk-low::after {
+  background: #007bff !important; /* Solid blue for low risk */
+}
+
+/* Dotted effect for certain categories */
+.leakai-category-pii::after {
+  background: repeating-linear-gradient(
+    90deg,
+    #6c757d 0px,
+    #6c757d 4px,
+    transparent 4px,
+    transparent 8px
+  );
+}
+
+.leakai-category-health::after {
+  background: repeating-linear-gradient(
+    90deg,
+    #fd7e14 0px,
+    #fd7e14 3px,
+    transparent 3px,
+    transparent 6px
+  );
+}
+
+/* Hover effects for detected elements */
+.leakai-has-detections:hover::after {
+  opacity: 1;
+  height: 3px;
+}
+
+.leakai-has-detections:hover {
+  cursor: help;
+}
+
+/* Enhanced hover for Gmail and complex layouts */
+div[contenteditable].leakai-has-detections:hover::after,
+div[role="textbox"].leakai-has-detections:hover::after {
+  height: 4px;
+  opacity: 0.9;
+}
+
+/* Animation for new detections */
+@keyframes leakai-detection-pulse {
+  0% {
+    opacity: 0.6;
+    height: 2px;
+  }
+  50% {
+    opacity: 1;
+    height: 4px;
+  }
+  100% {
+    opacity: 0.6;
+    height: 2px;
+  }
+}
+
+.leakai-has-detections.newly-detected::after {
+  animation: leakai-detection-pulse 1s ease-out;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .leakai-detection {
+    border-bottom-width: 3px;
+  }
+  
+  .leakai-detection.risk-high {
+    border-bottom-color: #ff0000;
+  }
+  
+  .leakai-detection.risk-medium {
+    border-bottom-color: #ff8800;
+  }
+  
+  .leakai-detection.risk-low {
+    border-bottom-color: #666666;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .leakai-detection {
+    transition: none;
+  }
+  
+  .leakai-detection.newly-detected {
+    animation: none;
+  }
+  
+  .leakai-action-executed {
+    animation: none;
+  }
+}
+
+/* Action feedback animations */
+.leakai-action-executed {
+  position: relative;
+}
+
+.leakai-action-executed::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 2px solid #10b981;
+  border-radius: 4px;
+  opacity: 0;
+  animation: leakai-action-feedback 1s ease-out;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes leakai-action-feedback {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+}
+
+/* Action-specific feedback colors */
+.leakai-action-mask::before {
+  border-color: #3b82f6;
+}
+
+.leakai-action-remove::before {
+  border-color: #ef4444;
+}
+
+.leakai-action-replace::before {
+  border-color: #f59e0b;
+}
+
+.leakai-action-encrypt::before {
+  border-color: #8b5cf6;
+}
+
+.leakai-action-ignore_once::before {
+  border-color: #6b7280;
+}
+
+/* Undo feedback animation */
+.leakai-undo-executed {
+  position: relative;
+}
+
+.leakai-undo-executed::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 2px solid #10b981;
+  border-radius: 4px;
+  opacity: 0;
+  animation: leakai-undo-feedback 1s ease-out;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes leakai-undo-feedback {
+  0% {
+    opacity: 0;
+    transform: scale(1.05);
+    border-color: #10b981;
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1);
+    border-color: #10b981;
+  }
+  70% {
+    opacity: 0.8;
+    transform: scale(0.98);
+    border-color: #059669;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+    border-color: #059669;
+  }
+}
+
+/* Undo-specific feedback colors */
+.leakai-undo-mask::before {
+  border-color: #3b82f6;
+}
+
+.leakai-undo-remove::before {
+  border-color: #ef4444;
+}
+
+.leakai-undo-replace::before {
+  border-color: #f59e0b;
+}
+
+.leakai-undo-encrypt::before {
+  border-color: #8b5cf6;
+}
+
+.leakai-undo-ignore_once::before {
+  border-color: #6b7280;
+}
+
+/* Tooltip Styles */
+.leakai-tooltip {
+  position: absolute;
+  z-index: 10000;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  max-width: 300px;
+  min-width: 200px;
+  opacity: 0;
+  transform: translateY(-5px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+.leakai-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto; /* Enable pointer events when visible */
+}
+
+.leakai-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid #ffffff;
+}
+
+.leakai-tooltip::after {
+  content: '';
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 7px solid #d1d5db;
+}
+
+.leakai-tooltip-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.leakai-tooltip-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.leakai-tooltip-icon.risk-high {
+  background-color: #dc3545;
+}
+
+.leakai-tooltip-icon.risk-medium {
+  background-color: #ffc107;
+}
+
+.leakai-tooltip-icon.risk-low {
+  background-color: #6c757d;
+}
+
+.leakai-tooltip-title {
+  color: #374151;
+  font-size: 14px;
+}
+
+.leakai-tooltip-content {
+  color: #6b7280;
+  margin-bottom: 10px;
+}
+
+.leakai-tooltip-details {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-bottom: 10px;
+}
+
+.leakai-tooltip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.leakai-tooltip-action {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: #374151;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.leakai-tooltip-action:hover {
+  background: #e5e7eb;
+}
+
+.leakai-tooltip-action.primary {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.leakai-tooltip-action.primary:hover {
+  background: #2563eb;
+}
+
+.leakai-tooltip-action.undo {
+  background: #10b981;
+  color: white;
+  border-color: #10b981;
+  font-weight: 500;
+}
+
+.leakai-tooltip-action.undo:hover {
+  background: #059669;
+  border-color: #059669;
+}
+
+.leakai-tooltip-confidence {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 6px;
+  text-align: right;
+}
+
+/* Tooltip positioning variants */
+.leakai-tooltip.position-top {
+  margin-bottom: 8px;
+}
+
+.leakai-tooltip.position-bottom {
+  margin-top: 8px;
+}
+
+.leakai-tooltip.position-bottom::before {
+  top: auto;
+  bottom: -6px;
+  border-top: 6px solid #ffffff;
+  border-bottom: none;
+}
+
+.leakai-tooltip.position-bottom::after {
+  top: auto;
+  bottom: -7px;
+  border-top: 7px solid #d1d5db;
+  border-bottom: none;
 }

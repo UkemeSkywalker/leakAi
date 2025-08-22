@@ -96,9 +96,9 @@
     - **Verify:** Context affects risk scoring (higher risk with "send", lower for "my address")
     - _Requirements: 5.4_
 
-- [ ] 5. Create content script for web page integration
+- [x] 5. Create content script for web page integration
 
-  - [ ] 5.1 Implement text input monitoring
+  - [x] 5.1 Implement text input monitoring
 
     - Write ContentScript class with event listeners for text inputs
     - Implement real-time text scanning on input events
@@ -108,7 +108,7 @@
     - **🌐 BROWSER TESTING MILESTONE:** Content script runs on web pages and monitors typing
     - _Requirements: 1.1, 1.2_
 
-  - [ ] 5.2 Create UI rendering system
+  - [x] 5.2 Create UI rendering system
 
     - Write UIRenderer class for applying visual indicators
     - Implement category-specific underline colors (Red, Amber, Blue, Purple, Gray)
@@ -118,7 +118,7 @@
     - **🌐 BROWSER TESTING MILESTONE:** Visual detection works - you can see underlines on web pages!
     - _Requirements: 1.2, 1.3_
 
-  - [ ] 5.3 Implement tooltip system
+  - [x] 5.3 Implement tooltip system
     - Create tooltip component with detection explanations
     - Implement hover event handling and positioning
     - Add tooltip content generation with risk level and actions
@@ -127,9 +127,9 @@
     - **🌐 BROWSER TESTING MILESTONE:** Full detection UI works - underlines + tooltips on any website
     - _Requirements: 1.4, 2.1_
 
-- [ ] 6. Implement user interaction and remediation actions
+- [x] 6. Implement user interaction and remediation actions
 
-  - [ ] 6.1 Create action menu system
+  - [x] 6.1 Create action menu system
 
     - Write action menu component with mask, remove, replace, encrypt, ignore options
     - Implement click handlers for each action type
@@ -138,7 +138,7 @@
     - **Verify:** Each action button is clickable and shows appropriate visual feedback
     - _Requirements: 2.2, 2.3, 2.4, 2.5, 2.6_
 
-  - [ ] 6.2 Implement masking functionality
+  - [x] 6.2 Implement masking functionality
 
     - Write text masking function (e.g., john.doe@example.com → j\*\*\*@example.com)
     - Implement different masking strategies for different data types
@@ -147,7 +147,7 @@
     - **Verify:** Email becomes j**_@example.com, phone becomes +1\_**7890, etc.
     - _Requirements: 2.2_
 
-  - [ ] 6.3 Implement remove and replace actions
+  - [x] 6.3 Implement remove and replace actions
     - Write text removal function with DOM manipulation
     - Implement text replacement with user input dialog
     - Add undo functionality for accidental actions

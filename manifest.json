@@ -13,7 +13,16 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content/content.js"],
+      "js": [
+        "patterns/data-models.js",
+        "patterns/email-detector.js",
+        "patterns/phone-detector.js",
+        "patterns/credit-card-detector.js",
+        "patterns/api-key-detector.js",
+        "patterns/crypto-detector.js",
+        "patterns/detection-engine.js",
+        "content/content.js"
+      ],
       "css": ["content/content.css"],
       "run_at": "document_idle"
     }

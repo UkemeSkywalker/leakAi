@@ -1,23 +1,28 @@
 // LeakAI Detection Engine
 // Core detection orchestrator that coordinates all pattern matchers
 
-// Import data models (will work in both browser and Node.js)
-let DetectionType, RiskLevel, Action, createDetectionResult;
+(function() {
+    'use strict';
+    
+    // Import data models (will work in both browser and Node.js)
+    let DetectionType, RiskLevel, Action, createDetectionResult;
 
-if (typeof module !== 'undefined' && module.exports) {
-    // Node.js environment
-    const dataModels = require('./data-models.js');
-    DetectionType = dataModels.DetectionType;
-    RiskLevel = dataModels.RiskLevel;
-    Action = dataModels.Action;
-    createDetectionResult = dataModels.createDetectionResult;
-} else {
-    // Browser environment
-    DetectionType = window.LeakAI.DetectionType;
-    RiskLevel = window.LeakAI.RiskLevel;
-    Action = window.LeakAI.Action;
-    createDetectionResult = window.LeakAI.createDetectionResult;
-}
+    if (typeof module !== 'undefined' && module.exports) {
+        // Node.js environment
+        const dataModels = require('./data-models.js');
+        DetectionType = dataModels.DetectionType;
+        RiskLevel = dataModels.RiskLevel;
+        Action = dataModels.Action;
+        createDetectionResult = dataModels.createDetectionResult;
+    } else {
+        // Browser environment - get from global LeakAI namespace
+        if (window.LeakAI) {
+            DetectionType = window.LeakAI.DetectionType;
+            RiskLevel = window.LeakAI.RiskLevel;
+            Action = window.LeakAI.Action;
+            createDetectionResult = window.LeakAI.createDetectionResult;
+        }
+    }
 
 /**
  * Core detection engine that orchestrates all pattern matching and analysis
@@ -42,10 +47,50 @@ class DetectionEngine {
             return;
         }
 
+        // Initialize pattern detectors
+        this._initializeDetectors();
+
         // Future: Load optional NER model here
-        // For now, just mark as initialized
         this.initialized = true;
         console.log('DetectionEngine initialization complete');
+    }
+
+    /**
+     * Initialize all pattern detectors
+     */
+    _initializeDetectors() {
+        // Clear existing detectors
+        this.detectors.clear();
+
+        // Initialize detectors if available in browser environment
+        if (typeof window !== 'undefined' && window.LeakAI) {
+            if (window.LeakAI.EmailDetector) {
+                this.detectors.set('email', new window.LeakAI.EmailDetector());
+                console.log('LeakAI EmailDetector initialized');
+            }
+            
+            if (window.LeakAI.PhoneDetector) {
+                this.detectors.set('phone', new window.LeakAI.PhoneDetector());
+                console.log('LeakAI PhoneDetector initialized');
+            }
+            
+            if (window.LeakAI.CreditCardDetector) {
+                this.detectors.set('creditCard', new window.LeakAI.CreditCardDetector());
+                console.log('LeakAI CreditCardDetector initialized');
+            }
+            
+            if (window.LeakAI.ApiKeyDetector) {
+                this.detectors.set('apiKey', new window.LeakAI.ApiKeyDetector());
+                console.log('LeakAI ApiKeyDetector initialized');
+            }
+            
+            if (window.LeakAI.CryptoDetector) {
+                this.detectors.set('crypto', new window.LeakAI.CryptoDetector());
+                console.log('LeakAI CryptoDetector initialized');
+            }
+        }
+
+        console.log(`LeakAI initialized ${this.detectors.size} pattern detectors`);
     }
 
     /**
@@ -68,23 +113,76 @@ class DetectionEngine {
 
         const detections = [];
 
-        // For now, we'll implement basic placeholder detection
-        // Individual pattern matchers will be implemented in later tasks
-        const placeholderDetections = this._runPlaceholderDetection(text);
-        detections.push(...placeholderDetections);
+        // Run all available pattern detectors
+        for (const [name, detector] of this.detectors) {
+            try {
+                const detectorResults = detector.detect(text);
+                if (detectorResults && detectorResults.length > 0) {
+                    detections.push(...detectorResults);
+                    console.log(`LeakAI ${name} detector found ${detectorResults.length} matches`);
+                }
+            } catch (error) {
+                console.error(`LeakAI ${name} detector failed:`, error);
+            }
+        }
 
-        // Apply confidence scoring and risk categorization
-        const scoredDetections = this._scoreConfidence(detections);
-        const categorizedDetections = this._categorizeRisk(scoredDetections);
+        // If no detectors are available, fall back to placeholder detection
+        if (this.detectors.size === 0) {
+            console.warn('LeakAI no pattern detectors available, using placeholder detection');
+            const placeholderDetections = this._runPlaceholderDetection(text);
+            detections.push(...placeholderDetections);
+        }
+
+        // Remove duplicates and overlapping detections
+        const uniqueDetections = this._removeDuplicateDetections(detections);
 
         // Cache the results
-        this._cacheResults(cacheKey, categorizedDetections);
+        this._cacheResults(cacheKey, uniqueDetections);
 
-        return categorizedDetections;
+        return uniqueDetections;
     }
 
     /**
-     * Placeholder detection method - will be replaced by actual pattern matchers
+     * Remove duplicate and overlapping detections
+     * @param {Array<Object>} detections - Array of detection results
+     * @returns {Array<Object>} Filtered detection results
+     */
+    _removeDuplicateDetections(detections) {
+        if (detections.length <= 1) {
+            return detections;
+        }
+
+        // Sort by start index
+        const sorted = detections.sort((a, b) => a.startIndex - b.startIndex);
+        const filtered = [];
+
+        for (const detection of sorted) {
+            // Check if this detection overlaps with any existing detection
+            const overlaps = filtered.some(existing => {
+                return (detection.startIndex < existing.endIndex && 
+                        detection.endIndex > existing.startIndex);
+            });
+
+            if (!overlaps) {
+                filtered.push(detection);
+            } else {
+                // If there's an overlap, keep the one with higher confidence
+                const overlappingIndex = filtered.findIndex(existing => 
+                    detection.startIndex < existing.endIndex && 
+                    detection.endIndex > existing.startIndex
+                );
+                
+                if (overlappingIndex !== -1 && detection.confidence > filtered[overlappingIndex].confidence) {
+                    filtered[overlappingIndex] = detection;
+                }
+            }
+        }
+
+        return filtered;
+    }
+
+    /**
+     * Placeholder detection method - fallback when no pattern detectors are available
      * @param {string} text - Text to analyze
      * @returns {Array<Object>} Basic detection objects
      */
@@ -300,12 +398,15 @@ class DetectionEngine {
     }
 }
 
-// Export for both Node.js and browser environments
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = DetectionEngine;
-} else {
-    window.LeakAI = window.LeakAI || {};
-    window.LeakAI.DetectionEngine = DetectionEngine;
-}
+    // Export for both Node.js and browser environments
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = DetectionEngine;
+    } else {
+        console.log('LeakAI DetectionEngine loading in browser environment');
+        window.LeakAI = window.LeakAI || {};
+        window.LeakAI.DetectionEngine = DetectionEngine;
+        console.log('LeakAI DetectionEngine class loaded successfully');
+    }
 
-console.log('LeakAI DetectionEngine class loaded');
+    console.log('LeakAI DetectionEngine script executed');
+})(); // End IIFE

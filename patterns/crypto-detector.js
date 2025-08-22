@@ -1,23 +1,28 @@
 // LeakAI Cryptocurrency Detection Patterns
 // Detects cryptocurrency-related sensitive data including seed phrases, private keys, and wallet addresses
 
-// Import data models (will work in both browser and Node.js)
-let DetectionType, RiskLevel, Action, createDetectionResult;
+(function() {
+    'use strict';
+    
+    // Import data models (will work in both browser and Node.js)
+    let DetectionType, RiskLevel, Action, createDetectionResult;
 
-if (typeof module !== 'undefined' && module.exports) {
-    // Node.js environment
-    const dataModels = require('./data-models.js');
-    DetectionType = dataModels.DetectionType;
-    RiskLevel = dataModels.RiskLevel;
-    Action = dataModels.Action;
-    createDetectionResult = dataModels.createDetectionResult;
-} else {
-    // Browser environment
-    DetectionType = window.LeakAI.DetectionType;
-    RiskLevel = window.LeakAI.RiskLevel;
-    Action = window.LeakAI.Action;
-    createDetectionResult = window.LeakAI.createDetectionResult;
-}
+    if (typeof module !== 'undefined' && module.exports) {
+        // Node.js environment
+        const dataModels = require('./data-models.js');
+        DetectionType = dataModels.DetectionType;
+        RiskLevel = dataModels.RiskLevel;
+        Action = dataModels.Action;
+        createDetectionResult = dataModels.createDetectionResult;
+    } else {
+        // Browser environment - get from global LeakAI namespace
+        if (window.LeakAI) {
+            DetectionType = window.LeakAI.DetectionType;
+            RiskLevel = window.LeakAI.RiskLevel;
+            Action = window.LeakAI.Action;
+            createDetectionResult = window.LeakAI.createDetectionResult;
+        }
+    }
 
 /**
  * BIP-39 word list (first 100 words for initial implementation)
@@ -413,12 +418,13 @@ class CryptoDetector {
     }
 }
 
-// Export for both Node.js and browser environments
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = CryptoDetector;
-} else {
-    window.LeakAI = window.LeakAI || {};
-    window.LeakAI.CryptoDetector = CryptoDetector;
-}
+    // Export for both Node.js and browser environments
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = CryptoDetector;
+    } else {
+        window.LeakAI = window.LeakAI || {};
+        window.LeakAI.CryptoDetector = CryptoDetector;
+    }
 
-console.log('LeakAI CryptoDetector class loaded');
+    console.log('LeakAI CryptoDetector class loaded');
+})(); // End IIFE

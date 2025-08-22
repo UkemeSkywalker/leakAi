@@ -152,10 +152,12 @@ if (typeof module !== 'undefined' && module.exports) {
   };
 } else {
   // Browser environment
+  console.log('LeakAI data models loading in browser environment');
   window.LeakAI = window.LeakAI || {};
   window.LeakAI.DetectionType = DetectionType;
   window.LeakAI.RiskLevel = RiskLevel;
   window.LeakAI.Action = Action;
   window.LeakAI.createDetectionResult = createDetectionResult;
   window.LeakAI.validateDetectionResult = validateDetectionResult;
+  console.log('LeakAI data models loaded successfully');
 }
