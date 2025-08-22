@@ -1,0 +1,32 @@
+{
+  "name": "leakai-chrome-extension",
+  "version": "1.0.0",
+  "description": "Chrome extension for real-time data loss prevention",
+  "main": "manifest.json",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "collectCoverageFrom": [
+      "patterns/**/*.js",
+      "!patterns/**/*.test.js"
+    ]
+  },
+  "keywords": [
+    "chrome-extension",
+    "data-loss-prevention",
+    "privacy",
+    "security"
+  ],
+  "author": "LeakAI Team",
+  "license": "MIT"
+}

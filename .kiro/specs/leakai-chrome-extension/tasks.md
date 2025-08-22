@@ -29,9 +29,9 @@
     - **Verify:** TypeScript compilation passes and all enum values are accessible
     - _Requirements: 2.1, 2.2_
 
-- [ ] 3. Implement deterministic pattern matchers
+- [x] 3. Implement deterministic pattern matchers
 
-  - [ ] 3.1 Create email detection pattern matcher
+  - [x] 3.1 Create email detection pattern matcher
 
     - Write EmailDetector class with regex-based detection
     - Implement email validation and context extraction
@@ -40,7 +40,7 @@
     - **Verify:** Detector correctly identifies emails and rejects non-email strings
     - _Requirements: 5.1_
 
-  - [ ] 3.2 Create phone number detection pattern matcher
+  - [x] 3.2 Create phone number detection pattern matcher
 
     - Write PhoneDetector class for E.164 and common formats
     - Implement phone number validation and normalization
@@ -49,7 +49,7 @@
     - **Verify:** Detector identifies valid phone numbers and normalizes to consistent format
     - _Requirements: 5.1_
 
-  - [ ] 3.3 Create credit card detection with Luhn validation
+  - [x] 3.3 Create credit card detection with Luhn validation
 
     - Write CreditCardDetector class with 13-19 digit pattern matching
     - Implement Luhn algorithm validation function
@@ -59,7 +59,7 @@
     - **Verify:** Luhn validation passes for valid test cards, fails for invalid numbers
     - _Requirements: 5.2_
 
-  - [ ] 3.4 Create API key and credential detection
+  - [x] 3.4 Create API key and credential detection
     - Write ApiKeyDetector class with known prefix patterns
     - Implement entropy analysis for high-entropy string detection
     - Add validation for common API key formats
