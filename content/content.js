@@ -688,6 +688,11 @@ class ActionMenu {
      */
     executeAction(action, detection, tooltipElement) {
         console.log(`LeakAI executing action: ${action} for detection:`, detection);
+        
+        // Track user activity
+        if (window.LeakAI && window.LeakAI.contentScript) {
+            window.LeakAI.contentScript.trackUserActivity();
+        }
 
         // Find the input element that contains this detection
         const inputElement = this._findInputElementForDetection(detection, tooltipElement);
@@ -1339,6 +1344,9 @@ class ContentScript {
             // Set up event listeners
             this._setupEventListeners();
             
+            // Initialize form submission interception
+            this.initializeFormInterception();
+            
             // Monitor existing elements
             this._scanExistingElements();
             
@@ -1857,6 +1865,816 @@ class ContentScript {
         
         // Store detections for this element
         this.lastDetections.set(element, detections);
+    }
+
+    /**
+     * Initialize form submission interception
+     * Sets up event listeners to detect and prevent form submissions with high-risk content
+     */
+    initializeFormInterception() {
+        console.log('LeakAI initializing form submission interception...');
+        
+        // Listen for form submissions using event delegation
+        document.addEventListener('submit', this.handleFormSubmission.bind(this), true);
+        
+        // Also listen for button clicks that might trigger form submissions
+        document.addEventListener('click', this.handleSubmitButtonClick.bind(this), true);
+        
+        console.log('LeakAI form interception initialized');
+    }
+
+    /**
+     * Handle form submission events
+     * @param {Event} event - Form submission event
+     */
+    handleFormSubmission(event) {
+        console.log('LeakAI intercepted form submission:', event.target);
+        
+        try {
+            const form = event.target;
+            if (!form || form.tagName !== 'FORM') {
+                return;
+            }
+            
+            // Check if form was already approved by user
+            if (form._leakaiApproved) {
+                console.log('LeakAI allowing pre-approved form submission');
+                // Clear approval flag for future submissions
+                delete form._leakaiApproved;
+                return;
+            }
+            
+            // Scan all form inputs for sensitive data
+            const formDetections = this.scanFormForSensitiveData(form);
+            
+            if (formDetections.length > 0) {
+                console.log(`LeakAI found ${formDetections.length} sensitive data items in form submission`);
+                
+                // Check if we have high-risk detections that should block submission
+                const highRiskDetections = formDetections.filter(d => d.riskLevel === 'high');
+                const mediumRiskDetections = formDetections.filter(d => d.riskLevel === 'medium');
+                
+                if (highRiskDetections.length > 0 || mediumRiskDetections.length > 0) {
+                    // Prevent form submission
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    console.log('LeakAI blocked form submission due to sensitive data');
+                    
+                    // Show warning modal
+                    this.showFormSubmissionWarning(form, formDetections, event);
+                    
+                    return false;
+                }
+            }
+            
+            console.log('LeakAI allowing form submission - no high-risk data detected');
+            
+        } catch (error) {
+            console.error('LeakAI form submission handling failed:', error);
+            // Don't block submission if our detection fails
+        }
+    }
+
+    /**
+     * Handle submit button clicks that might trigger form submissions
+     * @param {Event} event - Click event
+     */
+    handleSubmitButtonClick(event) {
+        const button = event.target;
+        
+        // Check if this is a submit button
+        if (!this.isSubmitButton(button)) {
+            return;
+        }
+        
+        console.log('LeakAI intercepted submit button click:', button);
+        
+        // Find the associated form
+        const form = button.form || button.closest('form');
+        if (!form) {
+            return;
+        }
+        
+        // For buttons that might submit via JavaScript, we need to check immediately
+        // This handles cases where forms are submitted programmatically
+        setTimeout(() => {
+            const formDetections = this.scanFormForSensitiveData(form);
+            
+            if (formDetections.length > 0) {
+                const highRiskDetections = formDetections.filter(d => d.riskLevel === 'high');
+                const mediumRiskDetections = formDetections.filter(d => d.riskLevel === 'medium');
+                
+                if (highRiskDetections.length > 0 || mediumRiskDetections.length > 0) {
+                    console.log('LeakAI detected sensitive data after submit button click');
+                    // The actual form submission event will handle the blocking
+                }
+            }
+        }, 10);
+    }
+
+    /**
+     * Check if an element is a submit button
+     * @param {Element} element - Element to check
+     * @returns {boolean} True if element is a submit button
+     */
+    isSubmitButton(element) {
+        if (!element) return false;
+        
+        const tagName = element.tagName.toLowerCase();
+        
+        // Check for input type="submit"
+        if (tagName === 'input' && element.type === 'submit') {
+            return true;
+        }
+        
+        // Check for button type="submit" or default button behavior
+        if (tagName === 'button') {
+            const type = element.type || 'submit'; // Default button type is submit
+            return type === 'submit';
+        }
+        
+        // Check for elements with submit-like attributes or classes
+        const submitIndicators = [
+            'data-submit',
+            'data-action="submit"',
+            'onclick*submit',
+            'class*submit'
+        ];
+        
+        return submitIndicators.some(indicator => {
+            if (indicator.includes('*')) {
+                const [attr, value] = indicator.split('*');
+                const attrValue = element.getAttribute(attr) || '';
+                return attrValue.toLowerCase().includes(value);
+            } else {
+                return element.hasAttribute(indicator);
+            }
+        });
+    }
+
+    /**
+     * Scan a form for sensitive data in all its inputs
+     * @param {Element} form - Form element to scan
+     * @returns {Array} Array of all detections found in the form
+     */
+    scanFormForSensitiveData(form) {
+        console.log('LeakAI scanning form for sensitive data...');
+        
+        const allDetections = [];
+        
+        // Find all input elements in the form, but exclude hidden and readonly fields
+        const inputs = form.querySelectorAll('input, textarea, [contenteditable="true"], [role="textbox"]');
+        
+        inputs.forEach(input => {
+            try {
+                // Skip hidden, readonly, or disabled inputs
+                if (input.type === 'hidden' || 
+                    input.readOnly || 
+                    input.disabled ||
+                    input.style.display === 'none' ||
+                    input.style.visibility === 'hidden') {
+                    console.log('LeakAI skipping hidden/readonly input:', input.name || input.type);
+                    return;
+                }
+                
+                console.log('LeakAI scanning input:', input.tagName, input.type, input.name);
+                const text = this._getElementText(input);
+                console.log('LeakAI extracted text:', text);
+                if (!text || text.trim().length === 0) {
+                    console.log('LeakAI skipping empty input');
+                    return;
+                }
+                
+                // Use the same detection logic as real-time scanning
+                const detections = this.performFallbackDetection(input, text);
+                
+                // Add form context to detections
+                detections.forEach(detection => {
+                    detection.formElement = form;
+                    detection.inputElement = input;
+                    detection.inputName = input.name || input.id || input.placeholder || 'unnamed';
+                });
+                
+                allDetections.push(...detections);
+                
+            } catch (error) {
+                console.error('LeakAI error scanning form input:', error);
+            }
+        });
+        
+        console.log(`LeakAI form scan complete: found ${allDetections.length} detections`);
+        return allDetections;
+    }
+
+    /**
+     * Show form submission warning modal
+     * @param {Element} form - Form element
+     * @param {Array} detections - Detected sensitive data
+     * @param {Event} originalEvent - Original form submission event
+     */
+    showFormSubmissionWarning(form, detections, originalEvent) {
+        console.log('LeakAI showing form submission warning modal');
+        
+        // Create and show the warning modal
+        const modal = this.createWarningModal(form, detections, originalEvent);
+        document.body.appendChild(modal);
+        
+        // Show modal with animation
+        requestAnimationFrame(() => {
+            modal.classList.add('visible');
+        });
+        
+        // Store the blocked submission for potential retry
+        form._leakaiBlockedSubmission = {
+            detections: detections,
+            originalEvent: originalEvent,
+            timestamp: Date.now(),
+            modal: modal
+        };
+        
+        console.log(`LeakAI modal shown with ${detections.length} detections`);
+    }
+
+    /**
+     * Create warning modal DOM element
+     * @param {Element} form - Form element
+     * @param {Array} detections - Detected sensitive data
+     * @param {Event} originalEvent - Original form submission event
+     * @returns {Element} Modal element
+     */
+    createWarningModal(form, detections, originalEvent) {
+        // Create modal container
+        const modal = document.createElement('div');
+        modal.className = 'leakai-warning-modal';
+        modal.setAttribute('data-leakai-modal', 'true');
+        
+        // Create modal content
+        const modalContent = document.createElement('div');
+        modalContent.className = 'leakai-modal-content';
+        
+        // Modal header
+        const header = this.createModalHeader(detections);
+        modalContent.appendChild(header);
+        
+        // Detection list
+        const detectionList = this.createDetectionList(detections);
+        modalContent.appendChild(detectionList);
+        
+        // Modal actions
+        const actions = this.createModalActions(form, detections, originalEvent, modal);
+        modalContent.appendChild(actions);
+        
+        modal.appendChild(modalContent);
+        
+        // Add event listeners
+        this.addModalEventListeners(modal, form, originalEvent);
+        
+        return modal;
+    }
+
+    /**
+     * Create modal header
+     * @param {Array} detections - Detected sensitive data
+     * @returns {Element} Header element
+     */
+    createModalHeader(detections) {
+        const header = document.createElement('div');
+        header.className = 'leakai-modal-header';
+        
+        const highRiskCount = detections.filter(d => d.riskLevel === 'high').length;
+        const mediumRiskCount = detections.filter(d => d.riskLevel === 'medium').length;
+        const lowRiskCount = detections.filter(d => d.riskLevel === 'low').length;
+        
+        const icon = document.createElement('div');
+        icon.className = 'leakai-modal-icon';
+        icon.innerHTML = '⚠️';
+        
+        const title = document.createElement('h3');
+        title.className = 'leakai-modal-title';
+        title.textContent = 'Sensitive Data Detected';
+        
+        const subtitle = document.createElement('p');
+        subtitle.className = 'leakai-modal-subtitle';
+        subtitle.textContent = `Found ${detections.length} sensitive data item${detections.length !== 1 ? 's' : ''} in this form`;
+        
+        const riskSummary = document.createElement('div');
+        riskSummary.className = 'leakai-risk-summary';
+        
+        if (highRiskCount > 0) {
+            const highRiskBadge = document.createElement('span');
+            highRiskBadge.className = 'leakai-risk-badge high';
+            highRiskBadge.textContent = `${highRiskCount} High Risk`;
+            riskSummary.appendChild(highRiskBadge);
+        }
+        
+        if (mediumRiskCount > 0) {
+            const mediumRiskBadge = document.createElement('span');
+            mediumRiskBadge.className = 'leakai-risk-badge medium';
+            mediumRiskBadge.textContent = `${mediumRiskCount} Medium Risk`;
+            riskSummary.appendChild(mediumRiskBadge);
+        }
+        
+        if (lowRiskCount > 0) {
+            const lowRiskBadge = document.createElement('span');
+            lowRiskBadge.className = 'leakai-risk-badge low';
+            lowRiskBadge.textContent = `${lowRiskCount} Low Risk`;
+            riskSummary.appendChild(lowRiskBadge);
+        }
+        
+        header.appendChild(icon);
+        header.appendChild(title);
+        header.appendChild(subtitle);
+        header.appendChild(riskSummary);
+        
+        return header;
+    }
+
+    /**
+     * Create detection list
+     * @param {Array} detections - Detected sensitive data
+     * @returns {Element} Detection list element
+     */
+    createDetectionList(detections) {
+        const listContainer = document.createElement('div');
+        listContainer.className = 'leakai-detection-list';
+        
+        const listTitle = document.createElement('h4');
+        listTitle.textContent = 'Detected Items:';
+        listContainer.appendChild(listTitle);
+        
+        const list = document.createElement('ul');
+        list.className = 'leakai-detections';
+        
+        // Group detections by risk level
+        const groupedDetections = {
+            high: detections.filter(d => d.riskLevel === 'high'),
+            medium: detections.filter(d => d.riskLevel === 'medium'),
+            low: detections.filter(d => d.riskLevel === 'low')
+        };
+        
+        // Add detections in risk order
+        ['high', 'medium', 'low'].forEach(riskLevel => {
+            groupedDetections[riskLevel].forEach(detection => {
+                const listItem = this.createDetectionListItem(detection);
+                list.appendChild(listItem);
+            });
+        });
+        
+        listContainer.appendChild(list);
+        return listContainer;
+    }
+
+    /**
+     * Create individual detection list item
+     * @param {Object} detection - Detection result
+     * @returns {Element} List item element
+     */
+    createDetectionListItem(detection) {
+        const listItem = document.createElement('li');
+        listItem.className = `leakai-detection-item risk-${detection.riskLevel}`;
+        
+        const typeIcon = document.createElement('span');
+        typeIcon.className = 'leakai-detection-icon';
+        typeIcon.textContent = this.getDetectionIcon(detection.type);
+        
+        const content = document.createElement('div');
+        content.className = 'leakai-detection-content';
+        
+        const typeLabel = document.createElement('strong');
+        typeLabel.textContent = this.getTypeDisplayName(detection.type);
+        
+        const detectedText = document.createElement('code');
+        detectedText.className = 'leakai-detected-text';
+        detectedText.textContent = this.truncateText(detection.text, 50);
+        
+        const fieldInfo = document.createElement('span');
+        fieldInfo.className = 'leakai-field-info';
+        fieldInfo.textContent = detection.inputName ? ` (in ${detection.inputName})` : '';
+        
+        const riskBadge = document.createElement('span');
+        riskBadge.className = `leakai-risk-badge ${detection.riskLevel}`;
+        riskBadge.textContent = detection.riskLevel.toUpperCase();
+        
+        content.appendChild(typeLabel);
+        content.appendChild(document.createTextNode(': '));
+        content.appendChild(detectedText);
+        content.appendChild(fieldInfo);
+        
+        listItem.appendChild(typeIcon);
+        listItem.appendChild(content);
+        listItem.appendChild(riskBadge);
+        
+        return listItem;
+    }
+
+    /**
+     * Create modal actions (buttons)
+     * @param {Element} form - Form element
+     * @param {Array} detections - Detected sensitive data
+     * @param {Event} originalEvent - Original form submission event
+     * @param {Element} modal - Modal element
+     * @returns {Element} Actions element
+     */
+    createModalActions(form, detections, originalEvent, modal) {
+        const actions = document.createElement('div');
+        actions.className = 'leakai-modal-actions';
+        
+        const hasHighRisk = detections.some(d => d.riskLevel === 'high');
+        
+        // Cancel button (always available)
+        const cancelButton = document.createElement('button');
+        cancelButton.className = 'leakai-modal-button cancel';
+        cancelButton.textContent = 'Cancel Submission';
+        cancelButton.addEventListener('click', () => {
+            this.closeModal(modal);
+        });
+        
+        // Review button (go back to form)
+        const reviewButton = document.createElement('button');
+        reviewButton.className = 'leakai-modal-button review';
+        reviewButton.textContent = 'Review & Fix';
+        reviewButton.addEventListener('click', () => {
+            this.closeModal(modal);
+            this.highlightDetectedFields(detections);
+        });
+        
+        // Proceed button (only for medium/low risk)
+        if (!hasHighRisk) {
+            const proceedButton = document.createElement('button');
+            proceedButton.className = 'leakai-modal-button proceed';
+            proceedButton.textContent = 'Proceed Anyway';
+            proceedButton.addEventListener('click', () => {
+                this.proceedWithSubmission(form, originalEvent, modal);
+            });
+            actions.appendChild(proceedButton);
+        }
+        
+        actions.appendChild(reviewButton);
+        actions.appendChild(cancelButton);
+        
+        // Add warning text for high-risk items
+        if (hasHighRisk) {
+            const warning = document.createElement('p');
+            warning.className = 'leakai-high-risk-warning';
+            warning.textContent = 'High-risk data detected. Please remove sensitive information before submitting.';
+            actions.insertBefore(warning, actions.firstChild);
+        }
+        
+        return actions;
+    }
+
+    /**
+     * Add event listeners to modal
+     * @param {Element} modal - Modal element
+     * @param {Element} form - Form element
+     * @param {Event} originalEvent - Original form submission event
+     */
+    addModalEventListeners(modal, form, originalEvent) {
+        // Close on background click
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                this.closeModal(modal);
+            }
+        });
+        
+        // Close on Escape key
+        const escapeHandler = (event) => {
+            if (event.key === 'Escape') {
+                this.closeModal(modal);
+                document.removeEventListener('keydown', escapeHandler);
+            }
+        };
+        document.addEventListener('keydown', escapeHandler);
+        
+        // Store escape handler for cleanup
+        modal._escapeHandler = escapeHandler;
+    }
+
+    /**
+     * Close the warning modal
+     * @param {Element} modal - Modal element to close
+     */
+    closeModal(modal) {
+        if (!modal || !modal.parentNode) {
+            return;
+        }
+        
+        console.log('LeakAI closing warning modal');
+        
+        // Track user activity to suppress test page alerts
+        this.trackUserActivity();
+        
+        // Remove escape handler
+        if (modal._escapeHandler) {
+            document.removeEventListener('keydown', modal._escapeHandler);
+        }
+        
+        // Hide with animation
+        modal.classList.remove('visible');
+        
+        // Remove from DOM after animation
+        setTimeout(() => {
+            if (modal.parentNode) {
+                modal.parentNode.removeChild(modal);
+            }
+        }, 300);
+    }
+
+    /**
+     * Proceed with form submission
+     * @param {Element} form - Form element
+     * @param {Event} originalEvent - Original form submission event
+     * @param {Element} modal - Modal element
+     */
+    proceedWithSubmission(form, originalEvent, modal) {
+        console.log('LeakAI proceeding with form submission after user confirmation');
+        
+        // Track user activity
+        this.trackUserActivity();
+        
+        // Close modal
+        this.closeModal(modal);
+        
+        // Mark form as approved to bypass future interception
+        form._leakaiApproved = true;
+        
+        // Re-submit the form
+        setTimeout(() => {
+            if (originalEvent && originalEvent.type === 'submit') {
+                // Create new submit event
+                const newSubmitEvent = new Event('submit', {
+                    bubbles: true,
+                    cancelable: true
+                });
+                form.dispatchEvent(newSubmitEvent);
+            } else {
+                // Fallback: call submit method
+                form.submit();
+            }
+        }, 100);
+    }
+
+    /**
+     * Highlight detected fields in the form
+     * @param {Array} detections - Detected sensitive data
+     */
+    highlightDetectedFields(detections) {
+        console.log('LeakAI highlighting detected fields');
+        
+        // Track user activity
+        this.trackUserActivity();
+        
+        detections.forEach(detection => {
+            if (detection.inputElement) {
+                // Add highlight class
+                detection.inputElement.classList.add('leakai-field-highlight');
+                
+                // Focus on first high-risk field
+                if (detection.riskLevel === 'high') {
+                    detection.inputElement.focus();
+                    detection.inputElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                
+                // Remove highlight after a few seconds
+                setTimeout(() => {
+                    detection.inputElement.classList.remove('leakai-field-highlight');
+                }, 5000);
+            }
+        });
+    }
+
+    /**
+     * Get icon for detection type
+     * @param {string} type - Detection type
+     * @returns {string} Icon character
+     */
+    getDetectionIcon(type) {
+        const icons = {
+            'email': '📧',
+            'phone': '📞',
+            'credit_card': '💳',
+            'api_key': '🔑',
+            'crypto_seed': '🌱',
+            'crypto_private_key': '🔐',
+            'crypto_address': '₿',
+            'health_info': '🏥',
+            'company_confidential': '🏢',
+            'person_name': '👤',
+            'location': '📍',
+            'organization': '🏛️'
+        };
+        
+        return icons[type] || '⚠️';
+    }
+
+    /**
+     * Get display name for detection type
+     * @param {string} type - Detection type
+     * @returns {string} Display name
+     */
+    getTypeDisplayName(type) {
+        const typeNames = {
+            'email': 'Email Address',
+            'phone': 'Phone Number',
+            'credit_card': 'Credit Card',
+            'api_key': 'API Key',
+            'crypto_seed': 'Crypto Seed Phrase',
+            'crypto_private_key': 'Private Key',
+            'crypto_address': 'Crypto Address',
+            'health_info': 'Health Information',
+            'company_confidential': 'Company Confidential',
+            'person_name': 'Person Name',
+            'location': 'Location',
+            'organization': 'Organization'
+        };
+        
+        return typeNames[type] || type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    /**
+     * Truncate text for display
+     * @param {string} text - Text to truncate
+     * @param {number} maxLength - Maximum length
+     * @returns {string} Truncated text
+     */
+    truncateText(text, maxLength) {
+        if (!text || text.length <= maxLength) {
+            return text || '';
+        }
+        
+        return text.substring(0, maxLength - 3) + '...';
+    }
+
+    /**
+     * Perform fallback detection on text (extracted from existing method for reuse)
+     * @param {Element} element - Input element
+     * @param {string} text - Text to analyze
+     * @returns {Array} Detection results
+     */
+    performFallbackDetection(element, text) {
+        const detections = [];
+        let match;
+        
+        // Simple email detection
+        const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
+        while ((match = emailRegex.exec(text)) !== null) {
+            detections.push({
+                type: 'email',
+                text: match[0],
+                startIndex: match.index,
+                endIndex: match.index + match[0].length,
+                confidence: 0.8,
+                riskLevel: 'medium',
+                context: text.substring(Math.max(0, match.index - 20), Math.min(text.length, match.index + match[0].length + 20)),
+                suggestions: ['mask', 'remove', 'replace', 'ignore_once']
+            });
+        }
+        
+        // Simple phone detection
+        const phoneRegex = /\b\+?1?[-.\s]?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}\b/g;
+        while ((match = phoneRegex.exec(text)) !== null) {
+            detections.push({
+                type: 'phone',
+                text: match[0],
+                startIndex: match.index,
+                endIndex: match.index + match[0].length,
+                confidence: 0.7,
+                riskLevel: 'medium',
+                context: text.substring(Math.max(0, match.index - 20), Math.min(text.length, match.index + match[0].length + 20)),
+                suggestions: ['mask', 'remove', 'replace', 'ignore_once']
+            });
+        }
+        
+        // Simple credit card detection
+        const ccRegex = /\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3[0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})\b/g;
+        while ((match = ccRegex.exec(text)) !== null) {
+            detections.push({
+                type: 'credit_card',
+                text: match[0],
+                startIndex: match.index,
+                endIndex: match.index + match[0].length,
+                confidence: 0.9,
+                riskLevel: 'high',
+                context: text.substring(Math.max(0, match.index - 20), Math.min(text.length, match.index + match[0].length + 20)),
+                suggestions: ['mask', 'remove', 'replace', 'ignore_once']
+            });
+        }
+        
+        // More specific API key detection - look for common API key patterns
+        const apiKeyPatterns = [
+            // OpenAI API keys
+            /\bsk-[A-Za-z0-9]{48}\b/g,
+            // AWS Access Keys
+            /\bAKIA[0-9A-Z]{16}\b/g,
+            // Google API keys
+            /\bAIza[0-9A-Za-z_-]{35}\b/g,
+            // GitHub tokens
+            /\bghp_[A-Za-z0-9]{36}\b/g,
+            /\bgho_[A-Za-z0-9]{36}\b/g,
+            /\bghu_[A-Za-z0-9]{36}\b/g,
+            /\bghs_[A-Za-z0-9]{36}\b/g,
+            /\bghr_[A-Za-z0-9]{36}\b/g,
+            // Stripe keys
+            /\bsk_live_[0-9a-zA-Z]{24}\b/g,
+            /\bpk_live_[0-9a-zA-Z]{24}\b/g,
+            // Generic high-entropy keys (but more restrictive)
+            /\b[A-Za-z0-9]{32,64}\b/g
+        ];
+
+        apiKeyPatterns.forEach((regex, index) => {
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                // For the generic pattern (last one), check entropy and length
+                if (index === apiKeyPatterns.length - 1) {
+                    const entropy = this.calculateSimpleEntropy(match[0]);
+                    const hasVariedChars = /[A-Z]/.test(match[0]) && /[a-z]/.test(match[0]) && /[0-9]/.test(match[0]);
+                    
+                    // Only flag if high entropy AND mixed case/numbers AND reasonable length
+                    if (entropy < 4.0 || !hasVariedChars || match[0].length < 32) {
+                        continue;
+                    }
+                }
+                
+                detections.push({
+                    type: 'api_key',
+                    text: match[0],
+                    startIndex: match.index,
+                    endIndex: match.index + match[0].length,
+                    confidence: index < apiKeyPatterns.length - 1 ? 0.9 : 0.7, // Higher confidence for specific patterns
+                    riskLevel: 'high',
+                    context: text.substring(Math.max(0, match.index - 20), Math.min(text.length, match.index + match[0].length + 20)),
+                    suggestions: ['mask', 'remove', 'replace', 'ignore_once']
+                });
+            }
+        });
+        
+        // Filter out ignored detections, low confidence detections, and false positives
+        return detections.filter(detection => {
+            // Skip ignored detections
+            if (this.actionMenu.isDetectionIgnored(element, detection)) {
+                return false;
+            }
+            
+            // Skip low confidence detections
+            if (detection.confidence < 0.6) {
+                return false;
+            }
+            
+            // Filter out common false positives for API keys
+            if (detection.type === 'api_key') {
+                const text = detection.text.toLowerCase();
+                const context = detection.context.toLowerCase();
+                
+                // Skip WordPress nonces and similar tokens
+                if (context.includes('nonce') || 
+                    context.includes('csrf') || 
+                    context.includes('token') ||
+                    context.includes('turnstile') ||
+                    context.includes('captcha') ||
+                    context.includes('_wpcf7') ||
+                    context.includes('wp_') ||
+                    text.length > 64) { // Very long strings are likely not API keys
+                    return false;
+                }
+            }
+            
+            return true;
+        });
+    }
+
+    /**
+     * Calculate simple entropy for string analysis
+     * @param {string} str - String to analyze
+     * @returns {number} Entropy value
+     */
+    calculateSimpleEntropy(str) {
+        const freq = {};
+        for (let char of str) {
+            freq[char] = (freq[char] || 0) + 1;
+        }
+        
+        let entropy = 0;
+        const len = str.length;
+        
+        for (let char in freq) {
+            const p = freq[char] / len;
+            entropy -= p * Math.log2(p);
+        }
+        
+        return entropy;
+    }
+
+    /**
+     * Track user activity with LeakAI to suppress test page alerts
+     */
+    trackUserActivity() {
+        try {
+            sessionStorage.setItem('leakai-recent-activity', Date.now().toString());
+        } catch (error) {
+            // Ignore sessionStorage errors
+            console.debug('LeakAI could not track user activity:', error);
+        }
     }
 
     /**
