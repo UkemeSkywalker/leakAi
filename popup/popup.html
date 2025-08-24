@@ -2,34 +2,156 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <style>
-    body {
-      width: 300px;
-      padding: 16px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    }
-    .header {
-      text-align: center;
-      margin-bottom: 16px;
-    }
-    .status {
-      padding: 8px;
-      background: #f0f0f0;
-      border-radius: 4px;
-      text-align: center;
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="popup.css">
+  <title>LeakAI - Data Loss Prevention</title>
 </head>
 <body>
-  <div class="header">
-    <h2>LeakAI</h2>
-    <p>Data Loss Prevention</p>
+  <div class="popup-container">
+    <!-- Header Section -->
+    <div class="header">
+      <div class="logo">
+        <h1>LeakAI</h1>
+        <p class="tagline">Data Loss Prevention</p>
+      </div>
+      <div class="status-indicator">
+        <div class="status-dot" id="statusDot"></div>
+        <span class="status-text" id="statusText">Loading...</span>
+      </div>
+    </div>
+
+    <!-- Master Toggle Section -->
+    <div class="section">
+      <div class="master-toggle">
+        <label class="toggle-container">
+          <input type="checkbox" id="masterToggle" class="toggle-input">
+          <span class="toggle-slider"></span>
+          <span class="toggle-label">Enable Protection</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Detection Categories Section -->
+    <div class="section" id="categoriesSection">
+      <h3 class="section-title">Detection Categories</h3>
+      <div class="categories-grid">
+        <!-- PII Category -->
+        <div class="category-group">
+          <h4 class="category-title">Personal Information</h4>
+          <div class="category-items">
+            <label class="category-toggle">
+              <input type="checkbox" id="toggle-email" data-category="email">
+              <span class="category-name">Email Addresses</span>
+              <span class="risk-badge low">Low</span>
+            </label>
+            <label class="category-toggle">
+              <input type="checkbox" id="toggle-phone" data-category="phone">
+              <span class="category-name">Phone Numbers</span>
+              <span class="risk-badge low">Low</span>
+            </label>
+            <label class="category-toggle">
+              <input type="checkbox" id="toggle-person_name" data-category="person_name">
+              <span class="category-name">Names</span>
+              <span class="risk-badge low">Low</span>
+            </label>
+            <label class="category-toggle">
+              <input type="checkbox" id="toggle-location" data-category="location">
+              <span class="category-name">Locations</span>
+              <span class="risk-badge low">Low</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Financial Category -->
+        <div class="category-group">
+          <h4 class="category-title">Financial Information</h4>
+          <div class="category-items">
+            <label class="category-toggle">
+              <input type="checkbox" id="toggle-credit_card" data-category="credit_card">
+              <span class="category-name">Credit Cards</span>
+              <span class="risk-badge medium">Medium</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Security Category -->
+        <div class="category-group">
+          <h4 class="category-title">Security & Credentials</h4>
+          <div class="category-items">
+            <label class="category-toggle">
+              <input type="checkbox" id="toggle-api_key" data-category="api_key">
+              <span class="category-name">API Keys</span>
+              <span class="risk-badge high">High</span>
+            </label>
+            <label class="category-toggle">
+              <input type="checkbox" id="toggle-crypto_seed" data-category="crypto_seed">
+              <span class="category-name">Crypto Seeds</span>
+              <span class="risk-badge high">High</span>
+            </label>
+            <label class="category-toggle">
+              <input type="checkbox" id="toggle-crypto_private_key" data-category="crypto_private_key">
+              <span class="category-name">Private Keys</span>
+              <span class="risk-badge high">High</span>
+            </label>
+            <label class="category-toggle">
+              <input type="checkbox" id="toggle-crypto_address" data-category="crypto_address">
+              <span class="category-name">Crypto Addresses</span>
+              <span class="risk-badge medium">Medium</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Sensitive Data Category -->
+        <div class="category-group">
+          <h4 class="category-title">Sensitive Information</h4>
+          <div class="category-items">
+            <label class="category-toggle">
+              <input type="checkbox" id="toggle-health_info" data-category="health_info">
+              <span class="category-name">Health Information</span>
+              <span class="risk-badge medium">Medium</span>
+            </label>
+            <label class="category-toggle">
+              <input type="checkbox" id="toggle-company_confidential" data-category="company_confidential">
+              <span class="category-name">Company Confidential</span>
+              <span class="risk-badge medium">Medium</span>
+            </label>
+            <label class="category-toggle">
+              <input type="checkbox" id="toggle-organization" data-category="organization">
+              <span class="category-name">Organizations</span>
+              <span class="risk-badge low">Low</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Statistics Section -->
+    <div class="section" id="statsSection">
+      <h3 class="section-title">Recent Activity</h3>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span class="stat-number" id="detectionsToday">0</span>
+          <span class="stat-label">Detections Today</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number" id="blockedSubmissions">0</span>
+          <span class="stat-label">Blocked Submissions</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Section -->
+    <div class="footer">
+      <div class="footer-links">
+        <button class="link-button" id="settingsBtn">Advanced Settings</button>
+        <button class="link-button" id="helpBtn">Help & Support</button>
+      </div>
+      <div class="version-info">
+        <span id="versionText">v1.0.0</span>
+      </div>
+    </div>
   </div>
-  
-  <div class="status">
-    Extension loaded successfully
-  </div>
-  
+
   <script src="popup.js"></script>
 </body>
 </html>
