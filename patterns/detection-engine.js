@@ -97,6 +97,16 @@ class DetectionEngine {
                 this.detectors.set('crypto', new window.LeakAI.CryptoDetector());
                 if (window.LeakAILogger) window.LeakAILogger.log('LeakAI CryptoDetector initialized');
             }
+            
+            if (window.LeakAI.HealthDetector) {
+                this.detectors.set('health', new window.LeakAI.HealthDetector());
+                if (window.LeakAILogger) window.LeakAILogger.log('LeakAI HealthDetector initialized');
+            }
+            
+            if (window.LeakAI.CompanyConfidentialDetector) {
+                this.detectors.set('companyConfidential', new window.LeakAI.CompanyConfidentialDetector());
+                if (window.LeakAILogger) window.LeakAILogger.log('LeakAI CompanyConfidentialDetector initialized');
+            }
         }
 
         if (window.LeakAILogger) {
@@ -248,7 +258,9 @@ class DetectionEngine {
             'phone': 'phone',
             'creditCard': 'credit_card',
             'apiKey': 'api_key',
-            'crypto': ['crypto_seed', 'crypto_private_key', 'crypto_address']
+            'crypto': ['crypto_seed', 'crypto_private_key', 'crypto_address'],
+            'health': 'health_info',
+            'companyConfidential': 'company_confidential'
         };
 
         const categories = detectorCategoryMap[detectorName];

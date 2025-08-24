@@ -268,9 +268,9 @@
     - **Verify:** Settings changes take effect immediately across all tabs
     - _Requirements: 6.7, 8.4, 8.5_
 
-- [ ] 12. Implement health and company-confidential detection
+- [x] 12. Implement health and company-confidential detection
 
-  - [ ] 12.1 Create health information detection
+  - [x] 12.1 Create health information detection
 
     - Write health terms detector with medical terminology patterns
     - Implement context-aware health information flagging
@@ -279,7 +279,7 @@
     - **Verify:** Health-related terms are flagged with appropriate risk levels
     - _Requirements: 5.5_
 
-  - [ ] 12.2 Create company-confidential detection
+  - [x] 12.2 Create company-confidential detection
     - Write configurable company terms detector
     - Implement project codename and client list detection
     - Add organizational rule application system
