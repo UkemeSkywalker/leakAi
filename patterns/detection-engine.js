@@ -33,16 +33,19 @@ class DetectionEngine {
         this.cache = new Map(); // Cache for detection results
         this.cacheMaxSize = 1000; // Maximum cache entries
         this.cacheTTL = 300000; // Cache TTL: 5 minutes
-        this.nerModel = null; // Optional NER model (will be loaded later)
+        this.nerDetector = null; // Optional NER detector
         this.initialized = false;
 
-        console.log('LeakAI DetectionEngine initialized');
+        // Note: Initialization message will be logged when extension state is available
     }
 
     /**
-     * Initialize the detection engine (async for future model loading)
+     * Initialize the detection engine (async for NER model loading)
+     * @param {Object} options - Initialization options
+     * @param {boolean} options.enableNER - Whether to enable NER model
+     * @param {boolean} options.autoLoadNER - Whether to auto-load NER model
      */
-    async initialize() {
+    async initialize(options = {}) {
         if (this.initialized) {
             return;
         }
@@ -50,9 +53,15 @@ class DetectionEngine {
         // Initialize pattern detectors
         this._initializeDetectors();
 
-        // Future: Load optional NER model here
+        // Initialize NER detector if available and enabled
+        if (options.enableNER !== false) {
+            await this._initializeNERDetector(options);
+        }
+
         this.initialized = true;
-        console.log('DetectionEngine initialization complete');
+        if (window.LeakAILogger) {
+            window.LeakAILogger.log('DetectionEngine initialization complete');
+        }
     }
 
     /**
@@ -66,31 +75,80 @@ class DetectionEngine {
         if (typeof window !== 'undefined' && window.LeakAI) {
             if (window.LeakAI.EmailDetector) {
                 this.detectors.set('email', new window.LeakAI.EmailDetector());
-                console.log('LeakAI EmailDetector initialized');
+                if (window.LeakAILogger) window.LeakAILogger.log('LeakAI EmailDetector initialized');
             }
             
             if (window.LeakAI.PhoneDetector) {
                 this.detectors.set('phone', new window.LeakAI.PhoneDetector());
-                console.log('LeakAI PhoneDetector initialized');
+                if (window.LeakAILogger) window.LeakAILogger.log('LeakAI PhoneDetector initialized');
             }
             
             if (window.LeakAI.CreditCardDetector) {
                 this.detectors.set('creditCard', new window.LeakAI.CreditCardDetector());
-                console.log('LeakAI CreditCardDetector initialized');
+                if (window.LeakAILogger) window.LeakAILogger.log('LeakAI CreditCardDetector initialized');
             }
             
             if (window.LeakAI.ApiKeyDetector) {
                 this.detectors.set('apiKey', new window.LeakAI.ApiKeyDetector());
-                console.log('LeakAI ApiKeyDetector initialized');
+                if (window.LeakAILogger) window.LeakAILogger.log('LeakAI ApiKeyDetector initialized');
             }
             
             if (window.LeakAI.CryptoDetector) {
                 this.detectors.set('crypto', new window.LeakAI.CryptoDetector());
-                console.log('LeakAI CryptoDetector initialized');
+                if (window.LeakAILogger) window.LeakAILogger.log('LeakAI CryptoDetector initialized');
+            }
+            
+            if (window.LeakAI.HealthDetector) {
+                this.detectors.set('health', new window.LeakAI.HealthDetector());
+                if (window.LeakAILogger) window.LeakAILogger.log('LeakAI HealthDetector initialized');
+            }
+            
+            if (window.LeakAI.CompanyConfidentialDetector) {
+                this.detectors.set('companyConfidential', new window.LeakAI.CompanyConfidentialDetector());
+                if (window.LeakAILogger) window.LeakAILogger.log('LeakAI CompanyConfidentialDetector initialized');
             }
         }
 
-        console.log(`LeakAI initialized ${this.detectors.size} pattern detectors`);
+        if (window.LeakAILogger) {
+            window.LeakAILogger.log(`LeakAI initialized ${this.detectors.size} pattern detectors`);
+        }
+    }
+
+    /**
+     * Initialize NER detector if available
+     * @param {Object} options - NER initialization options
+     */
+    async _initializeNERDetector(options = {}) {
+        try {
+            let NERDetectorClass = null;
+            
+            // Check if NERDetector is available
+            if (typeof window !== 'undefined' && window.LeakAI && window.LeakAI.NERDetector) {
+                // Browser environment
+                NERDetectorClass = window.LeakAI.NERDetector;
+            } else if (typeof module !== 'undefined' && module.exports) {
+                // Node.js environment - try to require the NER detector
+                try {
+                    NERDetectorClass = require('./ner-detector.js');
+                } catch (requireError) {
+                    if (window.LeakAILogger) window.LeakAILogger.log('LeakAI NERDetector module not found in Node.js environment');
+                }
+            }
+            
+            if (NERDetectorClass) {
+                this.nerDetector = new NERDetectorClass();
+                await this.nerDetector.initialize({
+                    enableModel: options.enableNER !== false,
+                    autoLoad: options.autoLoadNER === true
+                });
+                if (window.LeakAILogger) window.LeakAILogger.log('LeakAI NERDetector initialized');
+            } else {
+                if (window.LeakAILogger) window.LeakAILogger.log('LeakAI NERDetector not available, skipping NER initialization');
+            }
+        } catch (error) {
+            console.error('LeakAI failed to initialize NER detector:', error);
+            this.nerDetector = null;
+        }
     }
 
     /**
@@ -112,17 +170,57 @@ class DetectionEngine {
         }
 
         const detections = [];
+        const enabledCategories = options.enabledCategories || {};
 
-        // Run all available pattern detectors
+        // Run all available pattern detectors, but only if their categories are enabled
         for (const [name, detector] of this.detectors) {
             try {
+                // Check if this detector's category is enabled
+                if (!this._isDetectorEnabled(name, enabledCategories)) {
+                    // Only log if we have enabled categories (extension is active)
+                    if (enabledCategories && Object.values(enabledCategories).some(enabled => enabled)) {
+                        if (window.LeakAILogger) window.LeakAILogger.log(`LeakAI ${name} detector disabled by settings, skipping`);
+                    }
+                    continue;
+                }
+
                 const detectorResults = detector.detect(text);
                 if (detectorResults && detectorResults.length > 0) {
-                    detections.push(...detectorResults);
-                    console.log(`LeakAI ${name} detector found ${detectorResults.length} matches`);
+                    // Filter results by category settings at the individual detection level
+                    const filteredResults = detectorResults.filter(detection => 
+                        this._isDetectionCategoryEnabled(detection.type, enabledCategories)
+                    );
+                    
+                    if (filteredResults.length > 0) {
+                        detections.push(...filteredResults);
+                        if (window.LeakAILogger) window.LeakAILogger.log(`LeakAI ${name} detector found ${filteredResults.length}/${detectorResults.length} enabled matches`);
+                    } else {
+                        // Only log if extension is active
+                        if (enabledCategories && Object.values(enabledCategories).some(enabled => enabled)) {
+                            if (window.LeakAILogger) window.LeakAILogger.log(`LeakAI ${name} detector found ${detectorResults.length} matches but all categories disabled`);
+                        }
+                    }
+                } else {
+                    // Only log if extension is active
+                    if (enabledCategories && Object.values(enabledCategories).some(enabled => enabled)) {
+                        if (window.LeakAILogger) window.LeakAILogger.log(`LeakAI ${name} detector found no matches`);
+                    }
                 }
             } catch (error) {
                 console.error(`LeakAI ${name} detector failed:`, error);
+            }
+        }
+
+        // Run NER detector if available and enabled
+        if (this.nerDetector && options.enableNER !== false && this._isNEREnabled(enabledCategories)) {
+            try {
+                const nerResults = await this.nerDetector.detect(text);
+                if (nerResults && nerResults.length > 0) {
+                    detections.push(...nerResults);
+                    if (window.LeakAILogger) window.LeakAILogger.log(`LeakAI NER detector found ${nerResults.length} matches`);
+                }
+            } catch (error) {
+                console.error('LeakAI NER detector failed:', error);
             }
         }
 
@@ -140,6 +238,101 @@ class DetectionEngine {
         this._cacheResults(cacheKey, uniqueDetections);
 
         return uniqueDetections;
+    }
+
+    /**
+     * Check if a detector is enabled based on settings
+     * @param {string} detectorName - Name of the detector
+     * @param {Object} enabledCategories - Enabled categories from settings
+     * @returns {boolean} True if detector should run
+     */
+    _isDetectorEnabled(detectorName, enabledCategories) {
+        // If no settings provided, assume all detectors are enabled
+        if (!enabledCategories || Object.keys(enabledCategories).length === 0) {
+            return true;
+        }
+
+        // Map detector names to category settings
+        const detectorCategoryMap = {
+            'email': 'email',
+            'phone': 'phone',
+            'creditCard': 'credit_card',
+            'apiKey': 'api_key',
+            'crypto': ['crypto_seed', 'crypto_private_key', 'crypto_address'],
+            'health': 'health_info',
+            'companyConfidential': 'company_confidential'
+        };
+
+        const categories = detectorCategoryMap[detectorName];
+        if (!categories) {
+            // Unknown detector, assume enabled
+            return true;
+        }
+
+        // Check if any of the detector's categories are enabled
+        if (Array.isArray(categories)) {
+            return categories.some(category => enabledCategories[category] === true);
+        } else {
+            return enabledCategories[categories] === true;
+        }
+    }
+
+    /**
+     * Check if NER detection is enabled based on settings
+     * @param {Object} enabledCategories - Enabled categories from settings
+     * @returns {boolean} True if NER should run
+     */
+    _isNEREnabled(enabledCategories) {
+        // If no settings provided, assume NER is enabled
+        if (!enabledCategories || Object.keys(enabledCategories).length === 0) {
+            return true;
+        }
+
+        // NER detects person names, locations, and organizations
+        const nerCategories = ['person_name', 'location', 'organization'];
+        return nerCategories.some(category => enabledCategories[category] === true);
+    }
+
+    /**
+     * Check if a specific detection type/category is enabled
+     * @param {string} detectionType - The detection type (e.g., 'email', 'credit_card')
+     * @param {Object} enabledCategories - Enabled categories from settings
+     * @returns {boolean} True if this detection type should be included
+     */
+    _isDetectionCategoryEnabled(detectionType, enabledCategories) {
+        // If no settings provided, assume all categories are enabled
+        if (!enabledCategories || Object.keys(enabledCategories).length === 0) {
+            return true;
+        }
+
+        // Map detection types to settings keys
+        const detectionTypeMap = {
+            'email': 'email',
+            'phone': 'phone',
+            'credit_card': 'credit_card',
+            'api_key': 'api_key',
+            'crypto_seed': 'crypto_seed',
+            'crypto_private_key': 'crypto_private_key',
+            'crypto_address': 'crypto_address',
+            'health_info': 'health_info',
+            'company_confidential': 'company_confidential',
+            'person_name': 'person_name',
+            'location': 'location',
+            'organization': 'organization'
+        };
+
+        const settingsKey = detectionTypeMap[detectionType];
+        if (!settingsKey) {
+            console.warn(`LeakAI unknown detection type: ${detectionType}`);
+            return true; // Unknown types are enabled by default
+        }
+
+        const isEnabled = enabledCategories[settingsKey] === true;
+        // Only log if extension is active (has some enabled categories)
+        if (enabledCategories && Object.values(enabledCategories).some(enabled => enabled)) {
+            if (window.LeakAILogger) window.LeakAILogger.log(`LeakAI detection type ${detectionType} enabled: ${isEnabled}`);
+        }
+        return isEnabled;
     }
 
     /**
@@ -371,11 +564,32 @@ class DetectionEngine {
     }
 
     /**
-     * Check if NER model is available (placeholder for future implementation)
+     * Check if NER model is available and loaded
      * @returns {boolean} True if NER model is loaded
      */
     isModelAvailable() {
-        return this.nerModel !== null;
+        return this.nerDetector && this.nerDetector.isModelAvailable();
+    }
+
+    /**
+     * Load NER model if not already loaded
+     * @returns {Promise<boolean>} Success status
+     */
+    async loadNERModel() {
+        if (!this.nerDetector) {
+            console.warn('LeakAI NER detector not initialized');
+            return false;
+        }
+        
+        return await this.nerDetector.loadModel();
+    }
+
+    /**
+     * Get NER detector status
+     * @returns {Object|null} NER detector status or null if not available
+     */
+    getNERStatus() {
+        return this.nerDetector ? this.nerDetector.getStatus() : null;
     }
 
     /**
@@ -402,11 +616,11 @@ class DetectionEngine {
     if (typeof module !== 'undefined' && module.exports) {
         module.exports = DetectionEngine;
     } else {
-        console.log('LeakAI DetectionEngine loading in browser environment');
+        // Note: Loading message will be logged when extension state is available
         window.LeakAI = window.LeakAI || {};
         window.LeakAI.DetectionEngine = DetectionEngine;
-        console.log('LeakAI DetectionEngine class loaded successfully');
+        // Note: Load success message will be logged when extension state is available
     }
 
-    console.log('LeakAI DetectionEngine script executed');
+    // Note: Script execution message will be logged when extension state is available
 })(); // End IIFE

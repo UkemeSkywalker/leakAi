@@ -156,9 +156,9 @@
     - **🌐 BROWSER TESTING MILESTONE:** Core functionality complete - detect, show, and fix sensitive data
     - _Requirements: 2.3, 2.4_
 
-- [ ] 7. Create form submission interception system
+- [x] 7. Create form submission interception system
 
-  - [ ] 7.1 Implement form submission detection
+  - [x] 7.1 Implement form submission detection
 
     - Write form submission event listeners
     - Implement detection scanning before form submission
@@ -167,7 +167,7 @@
     - **Verify:** Form submission is prevented, console shows interception working
     - _Requirements: 7.1, 7.2_
 
-  - [ ] 7.2 Create warning modal system
+  - [x] 7.2 Create warning modal system
     - Write warning modal component with detected items list
     - Implement modal styling and user interaction
     - Add proceed/cancel functionality with appropriate actions
@@ -176,9 +176,9 @@
     - **🌐 BROWSER TESTING MILESTONE:** Form protection works - prevents accidental data submission
     - _Requirements: 7.2, 7.3, 7.4_
 
-- [ ] 8. Implement background script and settings management
+- [x] 8. Implement background script and settings management
 
-  - [ ] 8.1 Create background service worker
+  - [x] 8.1 Create background service worker
 
     - Write BackgroundScript class with message handling
     - Implement cross-tab communication and coordination
@@ -187,7 +187,7 @@
     - **Verify:** Background script logs show message handling, cross-tab sync works
     - _Requirements: 6.2, 6.3_
 
-  - [ ] 8.2 Implement settings storage system
+  - [x] 8.2 Implement settings storage system
     - Write settings management with Chrome storage API
     - Implement ExtensionSettings interface with all configuration options
     - Add default settings initialization and validation
@@ -195,9 +195,9 @@
     - **Verify:** Chrome storage contains expected settings, defaults load correctly
     - _Requirements: 6.1, 6.2, 6.3_
 
-- [ ] 9. Create extension popup interface
+- [x] 9. Create extension popup interface
 
-  - [ ] 9.1 Build popup HTML and CSS
+  - [x] 9.1 Build popup HTML and CSS
 
     - Create popup.html with extension controls layout
     - Write popup.css with styling for toggles and settings
@@ -206,7 +206,7 @@
     - **Verify:** All controls are visible and properly styled, responsive design works
     - _Requirements: 6.1, 6.2_
 
-  - [ ] 9.2 Implement popup functionality
+  - [x] 9.2 Implement popup functionality
     - Write popup.js with event handlers for controls
     - Implement master enable/disable toggle
     - Add per-category detection toggles
@@ -216,9 +216,9 @@
     - **🌐 BROWSER TESTING MILESTONE:** Full MVP ready - complete extension with user controls
     - _Requirements: 6.1, 6.2, 6.3_
 
-- [ ] 10. Add optional Transformers.js NER model integration
+- [x] 10. Add optional Transformers.js NER model integration
 
-  - [ ] 10.1 Implement NER model loading system
+  - [x] 10.1 Implement NER model loading system
 
     - Write NERDetector class with Transformers.js integration
     - Implement async model loading with progress indication
@@ -227,7 +227,7 @@
     - **Verify:** Console shows model loading progress, fallback works when model fails
     - _Requirements: 5.1, 5.6_
 
-  - [ ] 10.2 Create name and location detection
+  - [x] 10.2 Create name and location detection
     - Implement person name detection using NER pipeline
     - Add location and address detection
     - Implement organization name detection
@@ -236,9 +236,41 @@
     - **Verify:** NER model correctly identifies and flags these entities with appropriate confidence
     - _Requirements: 5.1, 5.6_
 
-- [ ] 11. Implement health and company-confidential detection
+- [x] 11. Fix settings and toggle functionality bugs
 
-  - [ ] 11.1 Create health information detection
+  - [x] 11.1 Fix master enable/disable toggle functionality
+
+    - Modify content script to check extension enabled status before processing any text input
+    - Update detection engine to respect master enable/disable setting
+    - Ensure no visual indicators appear when extension is disabled
+    - Add proper settings synchronization between popup and content script
+    - **Test:** Disable extension in popup, type sensitive data, verify no detection occurs
+    - **Verify:** When disabled, no underlines appear and console shows no detection activity
+    - _Requirements: 6.2, 6.4, 8.1, 8.2_
+
+  - [x] 11.2 Fix individual detection category toggles
+
+    - Modify detection engine to check category-specific settings before running each detector
+    - Update each pattern matcher to respect its category enable/disable setting
+    - Ensure settings changes immediately affect detection behavior
+    - Add proper category filtering in the main detection pipeline
+    - **Test:** Uncheck "Credit Cards" category, type credit card numbers, verify no detection
+    - **Verify:** Only enabled categories are detected, disabled categories are completely ignored
+    - _Requirements: 6.1, 6.3, 6.5, 8.3, 8.6_
+
+  - [x] 11.3 Fix settings synchronization and immediate application
+
+    - Implement real-time settings updates from popup to all active tabs
+    - Add message passing system for settings changes
+    - Ensure settings persist correctly and load on extension startup
+    - Fix any race conditions in settings loading and application
+    - **Test:** Change settings in popup, immediately test on web page without refresh
+    - **Verify:** Settings changes take effect immediately across all tabs
+    - _Requirements: 6.7, 8.4, 8.5_
+
+- [x] 12. Implement health and company-confidential detection
+
+  - [x] 12.1 Create health information detection
 
     - Write health terms detector with medical terminology patterns
     - Implement context-aware health information flagging
@@ -247,7 +279,7 @@
     - **Verify:** Health-related terms are flagged with appropriate risk levels
     - _Requirements: 5.5_
 
-  - [ ] 11.2 Create company-confidential detection
+  - [x] 12.2 Create company-confidential detection
     - Write configurable company terms detector
     - Implement project codename and client list detection
     - Add organizational rule application system
@@ -255,9 +287,9 @@
     - **Verify:** Custom organizational terms are flagged according to configured rules
     - _Requirements: 5.6_
 
-- [ ] 12. Add comprehensive error handling and performance optimization
+- [ ] 13. Add comprehensive error handling and performance optimization
 
-  - [ ] 12.1 Implement error handling system
+  - [ ] 13.1 Implement error handling system
 
     - Write ErrorHandler class with graceful degradation
     - Add error recovery for detection engine failures
@@ -266,7 +298,7 @@
     - **Verify:** Extension continues working with reduced functionality, no crashes occur
     - _Requirements: All requirements benefit from error handling_
 
-  - [ ] 12.2 Optimize performance and memory usage
+  - [ ] 13.2 Optimize performance and memory usage
     - Implement detection result caching with TTL
     - Add performance monitoring and timeout handling
     - Optimize DOM manipulation and event handling
@@ -275,9 +307,9 @@
     - **Verify:** No memory leaks, detection remains responsive under heavy usage
     - _Requirements: 1.1, 1.2 (performance impacts user experience)_
 
-- [ ] 13. Create comprehensive test suite
+- [ ] 14. Create comprehensive test suite
 
-  - [ ] 13.1 Write unit tests for all detection patterns
+  - [ ] 14.1 Write unit tests for all detection patterns
 
     - Create test cases for each pattern matcher with positive/negative examples
     - Test Luhn algorithm with known test credit card numbers
@@ -287,7 +319,7 @@
     - **Verify:** All tests pass, coverage reports show adequate test coverage (>80%)
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
 
-  - [ ] 13.2 Write integration tests for content script
+  - [ ] 14.2 Write integration tests for content script
     - Test detection across different website layouts
     - Test form submission interception
     - Test UI rendering with various text selections
@@ -296,9 +328,9 @@
     - **Verify:** Extension works correctly across different sites and frameworks
     - _Requirements: 1.1, 1.2, 1.4, 7.1, 7.2_
 
-- [ ] 14. Final integration and packaging
+- [ ] 15. Final integration and packaging
 
-  - [ ] 14.1 Integrate all components and test end-to-end functionality
+  - [ ] 15.1 Integrate all components and test end-to-end functionality
 
     - Wire together all detection engines with content script
     - Test complete user workflow from detection to remediation
@@ -309,7 +341,7 @@
     - **🌐 BROWSER TESTING MILESTONE:** Production-ready extension with all features
     - _Requirements: All requirements_
 
-  - [ ] 14.2 Package extension for distribution
+  - [ ] 15.2 Package extension for distribution
     - Create production build with minified code
     - Generate extension package for Chrome Web Store
     - Create installation and usage documentation

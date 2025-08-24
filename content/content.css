@@ -468,3 +468,365 @@ div[role="textbox"].leakai-has-detections:hover::after {
   border-top: 7px solid #d1d5db;
   border-bottom: none;
 }
+/*
+ Warning Modal Styles */
+.leakai-warning-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.leakai-warning-modal.visible {
+  opacity: 1;
+}
+
+.leakai-modal-content {
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  transform: scale(0.9);
+  transition: transform 0.3s ease;
+}
+
+.leakai-warning-modal.visible .leakai-modal-content {
+  transform: scale(1);
+}
+
+.leakai-modal-header {
+  padding: 20px 20px 15px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.leakai-modal-icon {
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+
+.leakai-modal-title {
+  margin: 0 0 5px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #dc3545;
+}
+
+.leakai-modal-subtitle {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.leakai-risk-summary {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.leakai-risk-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.leakai-risk-badge.high {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.leakai-risk-badge.medium {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.leakai-risk-badge.low {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.leakai-detection-list {
+  padding: 20px;
+}
+
+.leakai-detection-list h4 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.leakai-detections {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.leakai-detection-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  border-left: 4px solid;
+}
+
+.leakai-detection-item.risk-high {
+  background: #fef2f2;
+  border-left-color: #dc2626;
+}
+
+.leakai-detection-item.risk-medium {
+  background: #fffbeb;
+  border-left-color: #d97706;
+}
+
+.leakai-detection-item.risk-low {
+  background: #eff6ff;
+  border-left-color: #2563eb;
+}
+
+.leakai-detection-icon {
+  font-size: 16px;
+  margin-right: 10px;
+  min-width: 20px;
+}
+
+.leakai-detection-content {
+  flex: 1;
+  font-size: 14px;
+  color: #374151;
+}
+
+.leakai-detected-text {
+  background: #f3f4f6;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  color: #1f2937;
+}
+
+.leakai-field-info {
+  font-size: 12px;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.leakai-detection-item .leakai-risk-badge {
+  margin-left: 10px;
+}
+
+.leakai-modal-actions {
+  padding: 20px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.leakai-modal-button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid;
+}
+
+.leakai-modal-button.cancel {
+  background: #f3f4f6;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
+.leakai-modal-button.cancel:hover {
+  background: #e5e7eb;
+}
+
+.leakai-modal-button.review {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.leakai-modal-button.review:hover {
+  background: #2563eb;
+}
+
+.leakai-modal-button.proceed {
+  background: #f59e0b;
+  color: white;
+  border-color: #f59e0b;
+}
+
+.leakai-modal-button.proceed:hover {
+  background: #d97706;
+}
+
+.leakai-high-risk-warning {
+  margin: 0 0 15px 0;
+  padding: 10px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #dc2626;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Field highlighting for detected items */
+.leakai-field-highlight {
+  animation: leakai-field-highlight 2s ease-out;
+  border: 2px solid #f59e0b !important;
+  border-radius: 4px !important;
+}
+
+@keyframes leakai-field-highlight {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 600px) {
+  .leakai-modal-content {
+    width: 95%;
+    margin: 10px;
+  }
+  
+  .leakai-modal-actions {
+    flex-direction: column;
+  }
+  
+  .leakai-modal-button {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .leakai-risk-summary {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .leakai-warning-modal {
+    background: rgba(0, 0, 0, 0.7);
+  }
+  
+  .leakai-modal-content {
+    background: #1f2937;
+    color: #f9fafb;
+  }
+  
+  .leakai-modal-header {
+    border-bottom-color: #374151;
+  }
+  
+  .leakai-modal-title {
+    color: #ef4444;
+  }
+  
+  .leakai-modal-subtitle {
+    color: #9ca3af;
+  }
+  
+  .leakai-detection-list h4 {
+    color: #f9fafb;
+  }
+  
+  .leakai-detection-item.risk-high {
+    background: #1f1917;
+  }
+  
+  .leakai-detection-item.risk-medium {
+    background: #1f1e17;
+  }
+  
+  .leakai-detection-item.risk-low {
+    background: #171e2f;
+  }
+  
+  .leakai-detected-text {
+    background: #374151;
+    color: #f9fafb;
+  }
+  
+  .leakai-modal-actions {
+    border-top-color: #374151;
+  }
+  
+  .leakai-modal-button.cancel {
+    background: #374151;
+    color: #f9fafb;
+    border-color: #4b5563;
+  }
+  
+  .leakai-modal-button.cancel:hover {
+    background: #4b5563;
+  }
+  
+  .leakai-high-risk-warning {
+    background: #1f1917;
+    border-color: #7c2d12;
+    color: #ef4444;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .leakai-warning-modal {
+    background: rgba(0, 0, 0, 0.8);
+  }
+  
+  .leakai-modal-content {
+    border: 2px solid #000000;
+  }
+  
+  .leakai-modal-button {
+    border-width: 2px;
+  }
+  
+  .leakai-detection-item {
+    border-left-width: 6px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .leakai-warning-modal,
+  .leakai-modal-content {
+    transition: none;
+  }
+  
+  .leakai-field-highlight {
+    animation: none;
+    border: 2px solid #f59e0b !important;
+  }
+}
