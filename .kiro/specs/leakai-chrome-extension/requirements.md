@@ -72,8 +72,12 @@ LeakAI is a Chrome extension MVP that provides real-time data loss prevention by
 #### Acceptance Criteria
 
 1. WHEN the user opens extension settings THEN the system SHALL allow enabling/disabling detection categories
-2. WHEN the user toggles the extension on/off THEN the system SHALL respect the setting across all websites
-3. WHEN the user wants to temporarily disable detection THEN the system SHALL provide a quick toggle option
+2. WHEN the user toggles the extension on/off THEN the system SHALL completely stop all detection processing and visual indicators
+3. WHEN the user disables a specific detection category THEN the system SHALL not detect or flag that category of sensitive data
+4. WHEN the extension is disabled THEN the system SHALL not process any text input or show any visual indicators
+5. WHEN a detection category is unchecked THEN the system SHALL immediately stop detecting that specific data type
+6. WHEN the user wants to temporarily disable detection THEN the system SHALL provide a quick toggle option
+7. WHEN settings are changed THEN the system SHALL immediately apply the changes without requiring page refresh
 
 ### Requirement 7
 
@@ -85,3 +89,17 @@ LeakAI is a Chrome extension MVP that provides real-time data loss prevention by
 2. WHEN the warning modal is displayed THEN the system SHALL list all detected sensitive data items
 3. WHEN the user acknowledges the warning THEN the system SHALL allow form submission to proceed
 4. WHEN the user cancels the warning THEN the system SHALL prevent form submission and return focus to the form
+
+### Requirement 8
+
+**User Story:** As a user who has configured extension settings, I want the settings to work correctly and immediately, so that I have full control over the extension's behavior.
+
+#### Acceptance Criteria
+
+1. WHEN the extension is set to "Disabled" THEN the system SHALL not perform any detection processing on any text input
+2. WHEN the extension is disabled THEN the system SHALL not display any visual indicators (underlines, tooltips, modals)
+3. WHEN a specific detection category is unchecked THEN the system SHALL not run that detector on any text input
+4. WHEN settings are changed in the popup THEN the system SHALL immediately update the detection behavior on all active tabs
+5. WHEN the extension is re-enabled after being disabled THEN the system SHALL resume full detection functionality
+6. WHEN a detection category is re-enabled after being disabled THEN the system SHALL resume detecting that specific data type
+7. WHEN the user checks the extension status THEN the popup SHALL accurately reflect whether detection is actually active or inactive

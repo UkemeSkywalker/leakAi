@@ -20,6 +20,7 @@
         "patterns/credit-card-detector.js",
         "patterns/api-key-detector.js",
         "patterns/crypto-detector.js",
+        "patterns/ner-detector.js",
         "patterns/detection-engine.js",
         "content/content.js"
       ],

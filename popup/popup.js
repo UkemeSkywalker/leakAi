@@ -24,14 +24,25 @@ class PopupController {
     try {
       this.setLoadingState(true);
       
-      // Cache DOM elements
+      // Cache DOM elements first
       this.cacheElements();
+      
+      // Ensure we have default settings as fallback
+      if (!this.settings) {
+        this.settings = this.getDefaultSettings();
+      }
       
       // Set up event listeners
       this.setupEventListeners();
       
-      // Load current settings
+      // Load current settings (this may update this.settings)
       await this.loadSettings();
+      
+      // Ensure settings are still valid after loading
+      if (!this.settings) {
+        console.warn('Settings still null after loading, using defaults');
+        this.settings = this.getDefaultSettings();
+      }
       
       // Update UI with current settings
       this.updateUI();
@@ -43,7 +54,14 @@ class PopupController {
       console.log('LeakAI popup initialized successfully');
     } catch (error) {
       console.error('Failed to initialize popup:', error);
+      
+      // Ensure we have fallback settings even on error
+      if (!this.settings) {
+        this.settings = this.getDefaultSettings();
+      }
+      
       this.showError('Failed to load extension settings');
+      this.updateUI(); // Update UI with fallback settings
       this.setLoadingState(false);
     }
   }
@@ -52,38 +70,66 @@ class PopupController {
    * Cache frequently used DOM elements
    */
   cacheElements() {
-    this.elements = {
-      // Status elements
-      statusDot: document.getElementById('statusDot'),
-      statusText: document.getElementById('statusText'),
-      
-      // Master toggle
-      masterToggle: document.getElementById('masterToggle'),
-      
-      // Sections
-      categoriesSection: document.getElementById('categoriesSection'),
-      statsSection: document.getElementById('statsSection'),
-      
-      // Statistics
-      detectionsToday: document.getElementById('detectionsToday'),
-      blockedSubmissions: document.getElementById('blockedSubmissions'),
-      
-      // Footer buttons
-      settingsBtn: document.getElementById('settingsBtn'),
-      helpBtn: document.getElementById('helpBtn'),
-      versionText: document.getElementById('versionText'),
-      
-      // Container
-      container: document.querySelector('.popup-container')
-    };
+    try {
+      this.elements = {
+        // Status elements
+        statusDot: document.getElementById('statusDot'),
+        statusText: document.getElementById('statusText'),
+        
+        // Master toggle
+        masterToggle: document.getElementById('masterToggle'),
+        
+        // Sections
+        categoriesSection: document.getElementById('categoriesSection'),
+        statsSection: document.getElementById('statsSection'),
+        
+        // Statistics
+        detectionsToday: document.getElementById('detectionsToday'),
+        blockedSubmissions: document.getElementById('blockedSubmissions'),
+        
+        // Footer buttons
+        settingsBtn: document.getElementById('settingsBtn'),
+        helpBtn: document.getElementById('helpBtn'),
+        versionText: document.getElementById('versionText'),
+        
+        // Container
+        container: document.querySelector('.popup-container')
+      };
 
-    // Cache all category toggles
-    this.elements.categoryToggles = {};
-    const categoryInputs = document.querySelectorAll('[data-category]');
-    categoryInputs.forEach(input => {
-      const category = input.dataset.category;
-      this.elements.categoryToggles[category] = input;
-    });
+      // Cache all category toggles
+      this.elements.categoryToggles = {};
+      const categoryInputs = document.querySelectorAll('[data-category]');
+      if (categoryInputs && categoryInputs.length > 0) {
+        categoryInputs.forEach(input => {
+          if (input && input.dataset && input.dataset.category) {
+            const category = input.dataset.category;
+            this.elements.categoryToggles[category] = input;
+          }
+        });
+        console.log(`Cached ${Object.keys(this.elements.categoryToggles).length} category toggles`);
+      } else {
+        console.warn('No category toggles found in DOM');
+      }
+
+      // Log missing elements for debugging
+      const missingElements = [];
+      Object.entries(this.elements).forEach(([key, element]) => {
+        if (!element && key !== 'categoryToggles') {
+          missingElements.push(key);
+        }
+      });
+      
+      if (missingElements.length > 0) {
+        console.warn('Missing DOM elements:', missingElements);
+      }
+      
+    } catch (error) {
+      console.error('Error caching DOM elements:', error);
+      // Initialize empty elements object to prevent further errors
+      this.elements = {
+        categoryToggles: {}
+      };
+    }
   }
 
   /**
@@ -118,11 +164,13 @@ class PopupController {
     }
 
     // Listen for settings updates from background script
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      if (message.type === 'SETTINGS_UPDATED') {
-        this.handleSettingsUpdate(message.data.settings);
-      }
-    });
+    if (chrome && chrome.runtime && chrome.runtime.onMessage) {
+      chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        if (message.type === 'SETTINGS_UPDATED') {
+          this.handleSettingsUpdate(message.data.settings);
+        }
+      });
+    }
   }
 
   /**
@@ -130,16 +178,25 @@ class PopupController {
    */
   async loadSettings() {
     try {
+      // Check if Chrome extension APIs are available
+      if (!chrome || !chrome.runtime) {
+        console.warn('Chrome extension APIs not available, using default settings');
+        this.settings = this.getDefaultSettings();
+        return;
+      }
+
       const response = await this.sendMessage('GET_SETTINGS');
-      if (response.success) {
+      if (response && response.success) {
         this.settings = response.data;
         console.log('Settings loaded:', this.settings);
       } else {
-        throw new Error(response.error || 'Failed to load settings');
+        console.warn('Failed to load settings from background, using defaults:', response?.error);
+        this.settings = this.getDefaultSettings();
       }
     } catch (error) {
       console.error('Error loading settings:', error);
-      throw error;
+      console.warn('Using default settings due to error');
+      this.settings = this.getDefaultSettings();
     }
   }
 
@@ -167,22 +224,34 @@ class PopupController {
    * Update the UI with current settings
    */
   updateUI() {
-    if (!this.settings) return;
+    // Ensure settings exist before updating UI
+    if (!this.settings) {
+      console.warn('Settings not available, using defaults for UI update');
+      this.settings = this.getDefaultSettings();
+    }
+
+    // Ensure detectionCategories exists
+    if (!this.settings.detectionCategories) {
+      console.warn('Detection categories not found in settings, initializing defaults');
+      this.settings.detectionCategories = this.getDefaultSettings().detectionCategories;
+    }
 
     // Update master toggle
     if (this.elements.masterToggle) {
-      this.elements.masterToggle.checked = this.settings.enabled;
+      this.elements.masterToggle.checked = Boolean(this.settings.enabled);
     }
 
     // Update status indicator
     this.updateStatusIndicator();
 
     // Update category toggles
-    Object.entries(this.elements.categoryToggles).forEach(([category, element]) => {
-      if (this.settings.detectionCategories && category in this.settings.detectionCategories) {
-        element.checked = this.settings.detectionCategories[category];
-      }
-    });
+    if (this.elements.categoryToggles && this.settings.detectionCategories) {
+      Object.entries(this.elements.categoryToggles).forEach(([category, element]) => {
+        if (element && category in this.settings.detectionCategories) {
+          element.checked = Boolean(this.settings.detectionCategories[category]);
+        }
+      });
+    }
 
     // Update container state
     if (this.elements.container) {
@@ -191,8 +260,17 @@ class PopupController {
 
     // Update version info
     if (this.elements.versionText) {
-      const manifest = chrome.runtime.getManifest();
-      this.elements.versionText.textContent = `v${manifest.version}`;
+      try {
+        if (chrome && chrome.runtime && chrome.runtime.getManifest) {
+          const manifest = chrome.runtime.getManifest();
+          this.elements.versionText.textContent = `v${manifest.version}`;
+        } else {
+          this.elements.versionText.textContent = 'v1.0.0';
+        }
+      } catch (error) {
+        console.warn('Could not get manifest version:', error);
+        this.elements.versionText.textContent = 'v1.0.0';
+      }
     }
   }
 
@@ -210,13 +288,14 @@ class PopupController {
     if (this.isLoading) {
       statusDot.classList.add('loading');
       statusText.textContent = 'Loading...';
-    } else if (!this.settings?.enabled) {
+    } else if (!this.settings || !this.settings.enabled) {
       statusDot.classList.add('disabled');
-      statusText.textContent = 'Disabled';
+      statusText.textContent = this.settings ? 'Disabled' : 'Not Connected';
     } else {
-      // Count enabled categories
-      const enabledCategories = Object.values(this.settings.detectionCategories || {})
-        .filter(enabled => enabled).length;
+      // Count enabled categories safely
+      const detectionCategories = this.settings.detectionCategories || {};
+      const enabledCategories = Object.values(detectionCategories)
+        .filter(enabled => Boolean(enabled)).length;
       
       statusText.textContent = `Active (${enabledCategories} categories)`;
     }
@@ -294,20 +373,55 @@ class PopupController {
    */
   async updateSettings(settings) {
     try {
+      // If Chrome APIs are not available, just update locally
+      if (!chrome || !chrome.runtime) {
+        console.warn('Chrome extension APIs not available, updating settings locally only');
+        this.settings = settings;
+        this.updateUI();
+        return;
+      }
+
+      console.log('Popup updating settings via background script:', settings);
+
       const response = await this.sendMessage('UPDATE_SETTINGS', {
         settings,
         partial: false
       });
 
-      if (response.success) {
+      if (response && response.success) {
         this.settings = response.data;
         this.updateUI();
+        console.log('Settings successfully updated and synced:', this.settings);
+        
+        // Show brief success feedback
+        this.showSuccessFeedback();
       } else {
-        throw new Error(response.error || 'Failed to update settings');
+        console.warn('Failed to update settings via background script, updating locally:', response?.error);
+        this.settings = settings;
+        this.updateUI();
+        this.showError('Settings may not be synced across tabs');
       }
     } catch (error) {
       console.error('Error updating settings:', error);
-      throw error;
+      // Fall back to local update
+      console.warn('Falling back to local settings update');
+      this.settings = settings;
+      this.updateUI();
+      this.showError('Settings update failed, changes may not persist');
+    }
+  }
+
+  /**
+   * Show brief success feedback
+   */
+  showSuccessFeedback() {
+    if (this.elements.statusText) {
+      const originalText = this.elements.statusText.textContent;
+      this.elements.statusText.textContent = 'Settings Updated';
+      
+      setTimeout(() => {
+        this.updateStatusIndicator(); // Restore original status
+      }, 1500);
     }
   }
 
@@ -328,13 +442,17 @@ class PopupController {
     this.updateStatusIndicator();
     
     // Disable/enable controls during loading
-    if (this.elements.masterToggle) {
+    if (this.elements && this.elements.masterToggle) {
       this.elements.masterToggle.disabled = loading;
     }
     
-    Object.values(this.elements.categoryToggles).forEach(element => {
-      element.disabled = loading;
-    });
+    if (this.elements && this.elements.categoryToggles) {
+      Object.values(this.elements.categoryToggles).forEach(element => {
+        if (element) {
+          element.disabled = loading;
+        }
+      });
+    }
   }
 
   /**
@@ -361,9 +479,19 @@ class PopupController {
    */
   openAdvancedSettings() {
     console.log('Opening advanced settings...');
-    // In a full implementation, this might open an options page
-    chrome.runtime.openOptionsPage?.() || 
-    chrome.tabs.create({ url: chrome.runtime.getURL('options.html') });
+    try {
+      if (chrome && chrome.runtime && chrome.runtime.openOptionsPage) {
+        chrome.runtime.openOptionsPage();
+      } else if (chrome && chrome.tabs && chrome.tabs.create) {
+        chrome.tabs.create({ url: chrome.runtime.getURL('options.html') });
+      } else {
+        console.warn('Cannot open advanced settings - Chrome APIs not available');
+        alert('Advanced settings not available in this context');
+      }
+    } catch (error) {
+      console.error('Error opening advanced settings:', error);
+      alert('Could not open advanced settings');
+    }
   }
 
   /**
@@ -371,10 +499,19 @@ class PopupController {
    */
   openHelp() {
     console.log('Opening help...');
-    // In a full implementation, this might open documentation
-    chrome.tabs.create({ 
-      url: 'https://github.com/your-repo/leakai-extension/wiki' 
-    });
+    try {
+      if (chrome && chrome.tabs && chrome.tabs.create) {
+        chrome.tabs.create({ 
+          url: 'https://github.com/your-repo/leakai-extension/wiki' 
+        });
+      } else {
+        console.warn('Cannot open help - Chrome APIs not available');
+        window.open('https://github.com/your-repo/leakai-extension/wiki', '_blank');
+      }
+    } catch (error) {
+      console.error('Error opening help:', error);
+      window.open('https://github.com/your-repo/leakai-extension/wiki', '_blank');
+    }
   }
 
   /**
@@ -382,27 +519,113 @@ class PopupController {
    */
   async sendMessage(type, data = {}) {
     return new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage({ type, data }, (response) => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
-        } else {
-          resolve(response);
-        }
-      });
+      // Check if Chrome extension APIs are available
+      if (!chrome || !chrome.runtime || !chrome.runtime.sendMessage) {
+        console.warn('Chrome extension APIs not available');
+        reject(new Error('Chrome extension APIs not available'));
+        return;
+      }
+
+      try {
+        chrome.runtime.sendMessage({ type, data }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.error('Chrome runtime error:', chrome.runtime.lastError.message);
+            reject(new Error(chrome.runtime.lastError.message));
+          } else if (!response) {
+            console.error('No response from background script');
+            reject(new Error('No response from background script'));
+          } else {
+            resolve(response);
+          }
+        });
+      } catch (error) {
+        console.error('Error sending message:', error);
+        reject(error);
+      }
     });
+  }
+
+  /**
+   * Get default settings when background script is not available
+   */
+  getDefaultSettings() {
+    return {
+      enabled: true,
+      detectionCategories: {
+        email: true,
+        phone: true,
+        credit_card: true,
+        api_key: true,
+        crypto_seed: true,
+        crypto_private_key: true,
+        crypto_address: true,
+        health_info: true,
+        company_confidential: false,
+        person_name: false,
+        location: false,
+        organization: false
+      },
+      riskThresholds: {
+        low: 0.3,
+        medium: 0.6,
+        high: 0.8
+      },
+      uiPreferences: {
+        showTooltips: true,
+        quietMode: false,
+        colorScheme: 'default'
+      },
+      modelSettings: {
+        enableNER: false,
+        modelSize: 'tiny',
+        autoDownload: false
+      },
+      domainOverrides: {}
+    };
   }
 }
 
 // Initialize popup when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('LeakAI popup DOM loaded');
+  console.log('Chrome extension context available:', !!(chrome && chrome.runtime));
   
   try {
     const popup = new PopupController();
     await popup.initialize();
   } catch (error) {
     console.error('Failed to initialize popup:', error);
+    
+    // Show error in UI
+    const statusText = document.getElementById('statusText');
+    if (statusText) {
+      statusText.textContent = 'Initialization Error';
+    }
+    
+    const statusDot = document.getElementById('statusDot');
+    if (statusDot) {
+      statusDot.classList.add('disabled');
+    }
   }
 });
 
+// Add some immediate debugging
 console.log('LeakAI popup script loaded');
+console.log('Document ready state:', document.readyState);
+console.log('Chrome object available:', typeof chrome !== 'undefined');
+console.log('Chrome runtime available:', !!(typeof chrome !== 'undefined' && chrome.runtime));
+
+// If DOM is already loaded, initialize immediately
+if (document.readyState === 'loading') {
+  console.log('DOM still loading, waiting for DOMContentLoaded');
+} else {
+  console.log('DOM already loaded, initializing immediately');
+  setTimeout(async () => {
+    try {
+      const popup = new PopupController();
+      await popup.initialize();
+    } catch (error) {
+      console.error('Failed to initialize popup immediately:', error);
+    }
+  }, 0);
+}

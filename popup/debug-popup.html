@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LeakAI Debug - Data Loss Prevention</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      color: #333;
+      background: #ffffff;
+      width: 360px;
+      padding: 16px;
+    }
+    .debug-section {
+      margin-bottom: 16px;
+      padding: 12px;
+      border: 1px solid #e5e5e5;
+      border-radius: 4px;
+      background: #f9f9f9;
+    }
+    .debug-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #2563eb;
+    }
+    .debug-info {
+      font-size: 12px;
+      color: #666;
+      margin: 4px 0;
+    }
+    .status-good { color: #10b981; }
+    .status-bad { color: #ef4444; }
+    .status-warning { color: #f59e0b; }
+    
+    .test-button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 4px;
+    }
+    .test-button:hover {
+      background: #1d4ed8;
+    }
+    
+    .toggle-test {
+      margin: 8px 0;
+    }
+    .toggle-test input[type="checkbox"] {
+      margin-right: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="debug-section">
+    <div class="debug-title">LeakAI Extension Debug</div>
+    <div class="debug-info">Popup loaded at: <span id="loadTime"></span></div>
+    <div class="debug-info">Document state: <span id="docState"></span></div>
+  </div>
+
+  <div class="debug-section">
+    <div class="debug-title">Chrome Extension APIs</div>
+    <div class="debug-info">Chrome object: <span id="chromeAvailable"></span></div>
+    <div class="debug-info">Runtime API: <span id="runtimeAvailable"></span></div>
+    <div class="debug-info">Storage API: <span id="storageAvailable"></span></div>
+    <div class="debug-info">Tabs API: <span id="tabsAvailable"></span></div>
+  </div>
+
+  <div class="debug-section">
+    <div class="debug-title">Background Script Communication</div>
+    <div class="debug-info">Connection status: <span id="connectionStatus">Testing...</span></div>
+    <div class="debug-info">Last response: <span id="lastResponse">None</span></div>
+    <button class="test-button" id="testConnection">Test Connection</button>
+    <button class="test-button" id="testSettings">Test Settings</button>
+  </div>
+
+  <div class="debug-section">
+    <div class="debug-title">UI Functionality Test</div>
+    <div class="toggle-test">
+      <input type="checkbox" id="testToggle">
+      <label for="testToggle">Test Toggle (should work)</label>
+    </div>
+    <button class="test-button" id="testButton">Test Button</button>
+    <div class="debug-info">Button clicks: <span id="clickCount">0</span></div>
+    <div class="debug-info">Toggle state: <span id="toggleState">unchecked</span></div>
+  </div>
+
+  <div class="debug-section">
+    <div class="debug-title">Console Output</div>
+    <div id="consoleOutput" style="font-family: monospace; font-size: 11px; max-height: 100px; overflow-y: auto; background: #000; color: #0f0; padding: 8px;"></div>
+  </div>
+
+  <script>
+    // Debug logging
+    const originalLog = console.log;
+    const originalError = console.error;
+    const originalWarn = console.warn;
+    
+    const consoleOutput = document.getElementById('consoleOutput');
+    
+    function addToConsole(type, ...args) {
+      const timestamp = new Date().toLocaleTimeString();
+      const message = args.map(arg => 
+        typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+      ).join(' ');
+      
+      const div = document.createElement('div');
+      div.textContent = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+      consoleOutput.appendChild(div);
+      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    }
+    
+    console.log = (...args) => {
+      originalLog.apply(console, args);
+      addToConsole('log', ...args);
+    };
+    
+    console.error = (...args) => {
+      originalError.apply(console, args);
+      addToConsole('error', ...args);
+    };
+    
+    console.warn = (...args) => {
+      originalWarn.apply(console, args);
+      addToConsole('warn', ...args);
+    };
+
+    // Initialize debug info
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('Debug popup DOM loaded');
+      
+      // Basic info
+      document.getElementById('loadTime').textContent = new Date().toLocaleTimeString();
+      document.getElementById('docState').textContent = document.readyState;
+      
+      // Chrome API availability
+      const chromeAvailable = typeof chrome !== 'undefined';
+      const runtimeAvailable = chromeAvailable && !!chrome.runtime;
+      const storageAvailable = chromeAvailable && !!chrome.storage;
+      const tabsAvailable = chromeAvailable && !!chrome.tabs;
+      
+      document.getElementById('chromeAvailable').textContent = chromeAvailable ? '✓ Available' : '✗ Not Available';
+      document.getElementById('chromeAvailable').className = chromeAvailable ? 'status-good' : 'status-bad';
+      
+      document.getElementById('runtimeAvailable').textContent = runtimeAvailable ? '✓ Available' : '✗ Not Available';
+      document.getElementById('runtimeAvailable').className = runtimeAvailable ? 'status-good' : 'status-bad';
+      
+      document.getElementById('storageAvailable').textContent = storageAvailable ? '✓ Available' : '✗ Not Available';
+      document.getElementById('storageAvailable').className = storageAvailable ? 'status-good' : 'status-bad';
+      
+      document.getElementById('tabsAvailable').textContent = tabsAvailable ? '✓ Available' : '✗ Not Available';
+      document.getElementById('tabsAvailable').className = tabsAvailable ? 'status-good' : 'status-bad';
+      
+      // Test basic UI functionality
+      let clickCount = 0;
+      document.getElementById('testButton').addEventListener('click', () => {
+        clickCount++;
+        document.getElementById('clickCount').textContent = clickCount;
+        console.log('Test button clicked:', clickCount);
+      });
+      
+      document.getElementById('testToggle').addEventListener('change', (e) => {
+        const state = e.target.checked ? 'checked' : 'unchecked';
+        document.getElementById('toggleState').textContent = state;
+        console.log('Test toggle changed:', state);
+      });
+      
+      // Test connection
+      document.getElementById('testConnection').addEventListener('click', testConnection);
+      document.getElementById('testSettings').addEventListener('click', testSettings);
+      
+      // Auto-test connection
+      setTimeout(testConnection, 1000);
+    });
+    
+    async function testConnection() {
+      console.log('Testing background script connection...');
+      document.getElementById('connectionStatus').textContent = 'Testing...';
+      
+      if (!chrome || !chrome.runtime) {
+        document.getElementById('connectionStatus').textContent = '✗ Chrome APIs not available';
+        document.getElementById('connectionStatus').className = 'status-bad';
+        return;
+      }
+      
+      try {
+        chrome.runtime.sendMessage({ type: 'PING', data: {} }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.error('Connection test failed:', chrome.runtime.lastError.message);
+            document.getElementById('connectionStatus').textContent = '✗ Connection failed';
+            document.getElementById('connectionStatus').className = 'status-bad';
+            document.getElementById('lastResponse').textContent = chrome.runtime.lastError.message;
+          } else if (response) {
+            console.log('Connection test successful:', response);
+            document.getElementById('connectionStatus').textContent = '✓ Connected';
+            document.getElementById('connectionStatus').className = 'status-good';
+            document.getElementById('lastResponse').textContent = JSON.stringify(response);
+          } else {
+            console.warn('No response from background script');
+            document.getElementById('connectionStatus').textContent = '⚠ No response';
+            document.getElementById('connectionStatus').className = 'status-warning';
+            document.getElementById('lastResponse').textContent = 'No response received';
+          }
+        });
+      } catch (error) {
+        console.error('Error testing connection:', error);
+        document.getElementById('connectionStatus').textContent = '✗ Error';
+        document.getElementById('connectionStatus').className = 'status-bad';
+        document.getElementById('lastResponse').textContent = error.message;
+      }
+    }
+    
+    async function testSettings() {
+      console.log('Testing settings retrieval...');
+      
+      if (!chrome || !chrome.runtime) {
+        console.error('Chrome APIs not available for settings test');
+        return;
+      }
+      
+      try {
+        chrome.runtime.sendMessage({ type: 'GET_SETTINGS', data: {} }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.error('Settings test failed:', chrome.runtime.lastError.message);
+            document.getElementById('lastResponse').textContent = 'Settings error: ' + chrome.runtime.lastError.message;
+          } else if (response) {
+            console.log('Settings test successful:', response);
+            document.getElementById('lastResponse').textContent = 'Settings: ' + JSON.stringify(response, null, 2);
+          } else {
+            console.warn('No settings response');
+            document.getElementById('lastResponse').textContent = 'No settings response';
+          }
+        });
+      } catch (error) {
+        console.error('Error testing settings:', error);
+        document.getElementById('lastResponse').textContent = 'Settings error: ' + error.message;
+      }
+    }
+    
+    console.log('Debug popup script loaded');
+  </script>
+</body>
+</html>

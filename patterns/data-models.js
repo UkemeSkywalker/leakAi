@@ -364,7 +364,7 @@ if (typeof module !== 'undefined' && module.exports) {
   };
 } else {
   // Browser environment
-  console.log('LeakAI data models loading in browser environment');
+  // Note: Loading message will be logged when extension state is available
   window.LeakAI = window.LeakAI || {};
   window.LeakAI.DetectionType = DetectionType;
   window.LeakAI.RiskLevel = RiskLevel;
@@ -377,5 +377,5 @@ if (typeof module !== 'undefined' && module.exports) {
   window.LeakAI.validateExtensionSettings = validateExtensionSettings;
   window.LeakAI.createDomainOverride = createDomainOverride;
   window.LeakAI.mergeDeep = mergeDeep;
-  console.log('LeakAI data models loaded successfully');
+  // Note: Load success message will be logged when extension state is available
 }

@@ -48,7 +48,7 @@ const BIP39_WORDS = new Set([
 class CryptoDetector {
     constructor() {
         this.name = 'CryptoDetector';
-        console.log('CryptoDetector initialized');
+        // Note: Initialization message will be logged when extension state is available
     }
 
     /**
@@ -426,5 +426,5 @@ class CryptoDetector {
         window.LeakAI.CryptoDetector = CryptoDetector;
     }
 
-    console.log('LeakAI CryptoDetector class loaded');
+    // Note: Class load message will be logged when extension state is available
 })(); // End IIFE

@@ -12,7 +12,19 @@ class BackgroundScript {
     this.settingsCache = null;
     this.lastSettingsUpdate = 0;
     
-    console.log('LeakAI BackgroundScript initialized');
+    // Simple logging system that checks extension state
+    this.log = (message, ...args) => {
+      if (this.settingsCache && this.settingsCache.enabled) {
+        console.log(message, ...args);
+      }
+    };
+    
+    // Always log system messages (like initialization and settings changes)
+    this.systemLog = (message, ...args) => {
+      console.log(message, ...args);
+    };
+    
+    this.systemLog('LeakAI BackgroundScript initialized');
   }
 
   /**
@@ -29,7 +41,7 @@ class BackgroundScript {
       // Initialize settings
       await this.initializeSettings();
       
-      console.log('LeakAI background script initialized successfully');
+      this.systemLog('LeakAI background script initialized successfully');
     } catch (error) {
       console.error('Failed to initialize background script:', error);
     }
@@ -72,13 +84,13 @@ class BackgroundScript {
 
     // Handle extension startup
     chrome.runtime.onStartup.addListener(() => {
-      console.log('LeakAI extension started');
+      this.systemLog('LeakAI extension started');
       this.syncSettingsToAllTabs();
     });
 
     // Handle extension installation/update
     chrome.runtime.onInstalled.addListener((details) => {
-      console.log('LeakAI extension installed/updated:', details.reason);
+      this.systemLog('LeakAI extension installed/updated:', details.reason);
       if (details.reason === 'install') {
         this.initializeSettings();
       }
@@ -90,12 +102,15 @@ class BackgroundScript {
    */
   async handleMessage(message, sender, sendResponse) {
     try {
+      this.log('Background script received message:', message);
       const { type, data } = message;
-      console.log(`Background received message: ${type}`, data);
+      this.log(`Background processing message type: ${type}`, data);
 
       const handler = this.messageHandlers.get(type);
       if (handler) {
+        this.log(`Found handler for message type: ${type}`);
         const response = await handler(data, sender);
+        this.log(`Handler response for ${type}:`, response);
         sendResponse({ success: true, data: response });
       } else {
         console.warn(`Unknown message type: ${type}`);
@@ -112,7 +127,7 @@ class BackgroundScript {
    */
   async handleGetSettings(data, sender) {
     const settings = await this.getSettings();
-    console.log('Sending settings to tab:', sender.tab?.id);
+    this.log('Sending settings to tab:', sender.tab?.id);
     return settings;
   }
 
@@ -121,6 +136,8 @@ class BackgroundScript {
    */
   async handleUpdateSettings(data, sender) {
     const { settings, partial = false } = data;
+    
+    this.systemLog('Background script updating settings:', { settings, partial });
     
     if (partial) {
       // Merge with existing settings
@@ -132,10 +149,13 @@ class BackgroundScript {
       await this.saveSettings(settings);
     }
 
-    // Sync to all tabs
+    // Sync to all tabs immediately
     await this.syncSettingsToAllTabs();
     
-    return await this.getSettings();
+    const finalSettings = await this.getSettings();
+    this.systemLog('Settings updated and synced to all tabs:', finalSettings);
+    
+    return finalSettings;
   }
 
   /**
@@ -158,7 +178,7 @@ class BackgroundScript {
         url: sender.tab.url,
         connected: Date.now()
       });
-      console.log(`Tab ${tabId} connected, total tabs: ${this.connectedTabs.size}`);
+      this.log(`Tab ${tabId} connected, total tabs: ${this.connectedTabs.size}`);
       
       // Send current settings to newly connected tab
       await this.syncSettingsToTab(tabId);
@@ -173,7 +193,7 @@ class BackgroundScript {
     const tabId = sender.tab?.id;
     if (tabId) {
       this.connectedTabs.delete(tabId);
-      console.log(`Tab ${tabId} disconnected, remaining tabs: ${this.connectedTabs.size}`);
+      this.log(`Tab ${tabId} disconnected, remaining tabs: ${this.connectedTabs.size}`);
     }
     return { disconnected: true, tabId };
   }
@@ -286,17 +306,46 @@ class BackgroundScript {
    */
   async syncSettingsToAllTabs() {
     const settings = await this.getSettings();
-    const syncPromises = [];
+    console.log(`Syncing settings to ${this.connectedTabs.size} connected tabs:`, settings);
+    
+    // Also sync to all tabs, not just connected ones (in case content script loaded after connection)
+    const allTabsPromise = this.syncSettingsToAllActiveTabs();
+    const connectedTabsPromises = [];
 
     for (const [tabId] of this.connectedTabs) {
-      syncPromises.push(this.syncSettingsToTab(tabId));
+      connectedTabsPromises.push(this.syncSettingsToTab(tabId));
     }
 
     try {
-      await Promise.allSettled(syncPromises);
-      console.log(`Settings synced to ${this.connectedTabs.size} tabs`);
+      await Promise.allSettled([allTabsPromise, ...connectedTabsPromises]);
+      console.log(`Settings synced to all tabs (${this.connectedTabs.size} connected + all active)`);
     } catch (error) {
       console.error('Error syncing settings to tabs:', error);
+    }
+  }
+
+  /**
+   * Sync settings to all active tabs (not just connected ones)
+   */
+  async syncSettingsToAllActiveTabs() {
+    try {
+      const tabs = await chrome.tabs.query({});
+      const settings = await this.getSettings();
+      
+      const syncPromises = tabs.map(tab => {
+        return chrome.tabs.sendMessage(tab.id, {
+          type: 'SETTINGS_UPDATED',
+          data: { settings, timestamp: this.lastSettingsUpdate }
+        }).catch(error => {
+          // Ignore errors for tabs without content script
+          console.log(`Could not sync to tab ${tab.id}: ${error.message}`);
+        });
+      });
+      
+      await Promise.allSettled(syncPromises);
+      console.log(`Attempted to sync settings to ${tabs.length} total tabs`);
+    } catch (error) {
+      console.error('Error syncing to all active tabs:', error);
     }
   }
 
@@ -429,7 +478,17 @@ class BackgroundScript {
 }
 
 // Initialize background script
-const backgroundScript = new BackgroundScript();
-backgroundScript.initialize();
+console.log('LeakAI background service worker starting...');
+
+try {
+  const backgroundScript = new BackgroundScript();
+  backgroundScript.initialize().then(() => {
+    console.log('LeakAI background script initialized successfully');
+  }).catch((error) => {
+    console.error('Failed to initialize background script:', error);
+  });
+} catch (error) {
+  console.error('Error creating background script:', error);
+}
 
 console.log('LeakAI background service worker started');
