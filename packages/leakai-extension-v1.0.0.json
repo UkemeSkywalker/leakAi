@@ -1,0 +1,55 @@
+{
+  "name": "LeakAI Chrome Extension",
+  "version": "1.0.0",
+  "description": "Real-time data loss prevention extension",
+  "author": "LeakAI Team",
+  "homepage": "https://github.com/your-repo/leakai-extension",
+  "installation": {
+    "method": "unpacked",
+    "directory": "dist/",
+    "instructions": [
+      "Open Chrome and navigate to chrome://extensions/",
+      "Enable Developer mode",
+      "Click Load unpacked",
+      "Select the dist/ folder",
+      "Verify extension appears in list"
+    ]
+  },
+  "verification": {
+    "steps": [
+      "Click LeakAI icon in toolbar",
+      "Verify popup shows Active status",
+      "Type email address in any text field",
+      "Verify colored underline appears"
+    ]
+  },
+  "features": [
+    "Real-time sensitive data detection",
+    "Visual indicators with colored underlines",
+    "Tooltips with explanations and actions",
+    "Form submission warnings",
+    "Configurable detection categories",
+    "Cross-tab settings synchronization"
+  ],
+  "permissions": [
+    "activeTab - Access current tab content",
+    "storage - Save user preferences",
+    "scripting - Inject content scripts"
+  ],
+  "privacy": [
+    "All processing happens locally in browser",
+    "No data sent to external servers",
+    "Uses Chrome secure storage APIs",
+    "Follows Chrome security best practices"
+  ],
+  "support": {
+    "issues": "https://github.com/your-repo/leakai-extension/issues",
+    "documentation": "https://github.com/your-repo/leakai-extension/wiki",
+    "email": "support@leakai.com"
+  },
+  "build": {
+    "date": "2025-08-24T21:59:44.008Z",
+    "files": 24,
+    "size": 219522
+  }
+}

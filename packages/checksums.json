@@ -1,0 +1,6 @@
+{
+  "manifest.json": "fdb0681bf7a04325499f23e03cdbcde82a3e9390a60b4f5b6098a87628d53981",
+  "background/background.js": "bb272126381bd105e9d2cd2a0dc62e609a34ed14c3ba27b6e1440f985c07bb2e",
+  "content/content.js": "c59763ab937392ee076ae07a70e0604198ef92bf556d89603e7c0d8b4f0af7c0",
+  "popup/popup.js": "1b4a971ce73b83ec1074a55f4058cd5819316a648847676a69fe47e6bdbd9b19"
+}
