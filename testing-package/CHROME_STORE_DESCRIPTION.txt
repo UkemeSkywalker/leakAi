@@ -1,0 +1,48 @@
+LeakAI - Real-time Data Loss Prevention
+
+Protect your sensitive information with LeakAI, a Chrome extension that detects and flags sensitive data as you type across web applications.
+
+🔍 REAL-TIME DETECTION
+• Email addresses
+• Phone numbers  
+• Credit card numbers
+• API keys and credentials
+• Cryptocurrency data
+• Health information
+• Company confidential terms
+
+🎨 VISUAL INDICATORS
+• Color-coded underlines by risk level
+• Smart tooltips with explanations
+• Non-intrusive visual feedback
+
+⚡ QUICK ACTIONS
+• Mask sensitive data (e.g., j***@example.com)
+• Remove sensitive text
+• Replace with alternative text
+• Undo any changes
+
+🛡️ FORM PROTECTION
+• Warns before submitting sensitive data
+• Prevents accidental data leaks
+• Configurable risk thresholds
+
+⚙️ FLEXIBLE CONFIGURATION
+• Enable/disable detection categories
+• Master on/off toggle
+• Settings sync across browser tabs
+
+🔒 PRIVACY FIRST
+• 100% local processing
+• No data sent to external servers
+• No tracking or analytics
+• Open source code available
+
+Perfect for professionals, developers, and anyone who handles sensitive information online. Works seamlessly with Gmail, GitHub, banking sites, and all web applications.
+
+PERMISSIONS EXPLAINED:
+• activeTab: Access current tab content for detection
+• storage: Save your preferences locally
+• scripting: Inject detection scripts into web pages
+
+Try LeakAI today and never accidentally leak sensitive data again!
