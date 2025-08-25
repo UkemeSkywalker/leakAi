@@ -24,6 +24,9 @@
         "patterns/company-confidential-detector.js",
         "patterns/ner-detector.js",
         "patterns/detection-engine.js",
+        "patterns/text-measurement-engine.js",
+        "patterns/text-overlay-manager.js",
+        "patterns/overlay-event-handler.js",
         "content/content.js"
       ],
       "css": ["content/content.css"],

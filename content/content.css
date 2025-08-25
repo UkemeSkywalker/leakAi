@@ -36,11 +36,11 @@
 
 /* Create subtle underline effect using pseudo-element */
 .leakai-has-detections::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 0px; /* Moved to bottom edge */
-  left: 0px;   /* Full width */
-  right: 0px;  /* Full width */
+  left: 0px; /* Full width */
+  right: 0px; /* Full width */
   height: 3px; /* Thicker line */
   border-radius: 1px;
   opacity: 0.9; /* More visible */
@@ -151,15 +151,15 @@ div[role="textbox"].leakai-has-detections:hover::after {
   .leakai-detection {
     border-bottom-width: 3px;
   }
-  
+
   .leakai-detection.risk-high {
     border-bottom-color: #ff0000;
   }
-  
+
   .leakai-detection.risk-medium {
     border-bottom-color: #ff8800;
   }
-  
+
   .leakai-detection.risk-low {
     border-bottom-color: #666666;
   }
@@ -170,11 +170,11 @@ div[role="textbox"].leakai-has-detections:hover::after {
   .leakai-detection {
     transition: none;
   }
-  
+
   .leakai-detection.newly-detected {
     animation: none;
   }
-  
+
   .leakai-action-executed {
     animation: none;
   }
@@ -186,7 +186,7 @@ div[role="textbox"].leakai-has-detections:hover::after {
 }
 
 .leakai-action-executed::before {
-  content: '';
+  content: "";
   position: absolute;
   top: -2px;
   left: -2px;
@@ -242,7 +242,7 @@ div[role="textbox"].leakai-has-detections:hover::after {
 }
 
 .leakai-undo-executed::before {
-  content: '';
+  content: "";
   position: absolute;
   top: -2px;
   left: -2px;
@@ -309,7 +309,8 @@ div[role="textbox"].leakai-has-detections:hover::after {
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   padding: 12px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, sans-serif;
   font-size: 13px;
   line-height: 1.4;
   max-width: 300px;
@@ -327,7 +328,7 @@ div[role="textbox"].leakai-has-detections:hover::after {
 }
 
 .leakai-tooltip::before {
-  content: '';
+  content: "";
   position: absolute;
   top: -6px;
   left: 50%;
@@ -340,7 +341,7 @@ div[role="textbox"].leakai-has-detections:hover::after {
 }
 
 .leakai-tooltip::after {
-  content: '';
+  content: "";
   position: absolute;
   top: -7px;
   left: 50%;
@@ -483,7 +484,8 @@ div[role="textbox"].leakai-has-detections:hover::after {
   justify-content: center;
   opacity: 0;
   transition: opacity 0.3s ease;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, sans-serif;
 }
 
 .leakai-warning-modal.visible {
@@ -618,7 +620,7 @@ div[role="textbox"].leakai-has-detections:hover::after {
   background: #f3f4f6;
   padding: 2px 4px;
   border-radius: 3px;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
   font-size: 12px;
   color: #1f2937;
 }
@@ -718,16 +720,16 @@ div[role="textbox"].leakai-has-detections:hover::after {
     width: 95%;
     margin: 10px;
   }
-  
+
   .leakai-modal-actions {
     flex-direction: column;
   }
-  
+
   .leakai-modal-button {
     width: 100%;
     justify-content: center;
   }
-  
+
   .leakai-risk-summary {
     flex-direction: column;
     align-items: center;
@@ -739,59 +741,59 @@ div[role="textbox"].leakai-has-detections:hover::after {
   .leakai-warning-modal {
     background: rgba(0, 0, 0, 0.7);
   }
-  
+
   .leakai-modal-content {
     background: #1f2937;
     color: #f9fafb;
   }
-  
+
   .leakai-modal-header {
     border-bottom-color: #374151;
   }
-  
+
   .leakai-modal-title {
     color: #ef4444;
   }
-  
+
   .leakai-modal-subtitle {
     color: #9ca3af;
   }
-  
+
   .leakai-detection-list h4 {
     color: #f9fafb;
   }
-  
+
   .leakai-detection-item.risk-high {
     background: #1f1917;
   }
-  
+
   .leakai-detection-item.risk-medium {
     background: #1f1e17;
   }
-  
+
   .leakai-detection-item.risk-low {
     background: #171e2f;
   }
-  
+
   .leakai-detected-text {
     background: #374151;
     color: #f9fafb;
   }
-  
+
   .leakai-modal-actions {
     border-top-color: #374151;
   }
-  
+
   .leakai-modal-button.cancel {
     background: #374151;
     color: #f9fafb;
     border-color: #4b5563;
   }
-  
+
   .leakai-modal-button.cancel:hover {
     background: #4b5563;
   }
-  
+
   .leakai-high-risk-warning {
     background: #1f1917;
     border-color: #7c2d12;
@@ -804,15 +806,15 @@ div[role="textbox"].leakai-has-detections:hover::after {
   .leakai-warning-modal {
     background: rgba(0, 0, 0, 0.8);
   }
-  
+
   .leakai-modal-content {
     border: 2px solid #000000;
   }
-  
+
   .leakai-modal-button {
     border-width: 2px;
   }
-  
+
   .leakai-detection-item {
     border-left-width: 6px;
   }
@@ -824,9 +826,381 @@ div[role="textbox"].leakai-has-detections:hover::after {
   .leakai-modal-content {
     transition: none;
   }
-  
+
   .leakai-field-highlight {
     animation: none;
     border: 2px solid #f59e0b !important;
+  }
+}
+/*
+ ===== TEXT OVERLAY MANAGER STYLES ===== */
+/* Styles for precise text underlining overlay system */
+
+/* Overlay container */
+#leakai-overlay-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 999999;
+}
+
+/* Individual text overlay */
+.leakai-text-overlay {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+}
+
+/* Underline spans within overlays */
+.leakai-underline-span {
+  position: absolute;
+  pointer-events: auto;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, opacity 0.2s ease;
+}
+
+/* Risk level styling for underline spans */
+.leakai-underline-span.leakai-risk-high {
+  border-bottom-color: #dc3545; /* Red */
+}
+
+.leakai-underline-span.leakai-risk-medium {
+  border-bottom-color: #ffc107; /* Amber */
+}
+
+.leakai-underline-span.leakai-risk-low {
+  border-bottom-color: #007bff; /* Blue */
+}
+
+/* Category-specific styling (Requirements 3.4, 3.5, 3.6) */
+.leakai-underline-span.leakai-category-pii {
+  border-bottom-style: dotted;
+  border-bottom-color: #6c757d; /* Gray for PII */
+}
+
+.leakai-underline-span.leakai-category-health {
+  border-bottom-style: dotted;
+  border-bottom-color: #fd7e14; /* Orange for health */
+}
+
+.leakai-underline-span.leakai-category-financial,
+.leakai-underline-span.leakai-category-crypto {
+  border-bottom-style: solid;
+}
+
+.leakai-underline-span.leakai-category-technical {
+  border-bottom-style: dashed;
+}
+
+/* Overlapping detection styling */
+.leakai-underline-span.overlapping {
+  border-bottom-width: 3px;
+  opacity: 0.9;
+}
+
+.leakai-underline-span.overlapping:hover {
+  border-bottom-width: 4px;
+  opacity: 1;
+}
+
+/* Hover effects for underline spans */
+.leakai-underline-span:hover {
+  opacity: 0.8;
+  border-bottom-width: 3px;
+}
+
+/* Active/clicked state */
+.leakai-underline-span:active {
+  opacity: 0.6;
+}
+
+/* Multi-line underline support */
+.leakai-underline-span.multiline {
+  border-bottom: none;
+  background-image: linear-gradient(
+    to right,
+    var(--leakai-risk-color, #dc3545) 0%,
+    var(--leakai-risk-color, #dc3545) 100%
+  );
+  background-repeat: repeat-x;
+  background-position: 0 100%;
+  background-size: 100% 2px;
+}
+
+/* Dotted pattern for categories using background image */
+.leakai-underline-span.leakai-category-pii.multiline {
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--leakai-risk-color, #6c757d) 0px,
+    var(--leakai-risk-color, #6c757d) 3px,
+    transparent 3px,
+    transparent 6px
+  );
+}
+
+.leakai-underline-span.leakai-category-health.multiline {
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--leakai-risk-color, #fd7e14) 0px,
+    var(--leakai-risk-color, #fd7e14) 3px,
+    transparent 3px,
+    transparent 6px
+  );
+}
+
+/* Ensure overlays don't interfere with input functionality */
+.leakai-text-overlay * {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* High DPI display support */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .leakai-underline-span {
+    border-bottom-width: 1px;
+  }
+
+  .leakai-underline-span:hover {
+    border-bottom-width: 2px;
+  }
+}
+
+/* Accessibility improvements */
+.leakai-underline-span:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 1px;
+}
+
+/* Animation for span creation */
+@keyframes leakai-underline-appear {
+  from {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+.leakai-underline-span {
+  animation: leakai-underline-appear 0.3s ease-out;
+  transform-origin: left center;
+}
+
+/* Ensure overlays work with different input types */
+input.leakai-has-detections,
+textarea.leakai-has-detections,
+[contenteditable].leakai-has-detections {
+  position: relative;
+}
+
+/* Hide default element-level styling when overlay is active */
+.leakai-has-overlay::after {
+  display: none !important;
+}
+
+.leakai-has-overlay {
+  border-bottom: none !important;
+}
+/* Styles for precise text underlining spans */
+.leakai-underline-span {
+  position: absolute;
+  pointer-events: auto;
+  cursor: pointer;
+  box-sizing: border-box;
+  border-bottom: 2px solid #dc3545;
+  transition: all 0.2s ease;
+  z-index: 999998;
+  min-height: 2px; /* Ensure visibility */
+  background-color: transparent;
+  /* Temporary debugging background - remove in production */
+  background-color: rgba(255, 255, 0, 0.3) !important;
+}
+
+/* Risk level colors for underline spans */
+.leakai-underline-span.leakai-risk-high {
+  border-bottom-color: #dc3545;
+}
+
+.leakai-underline-span.leakai-risk-medium {
+  border-bottom-color: #ffc107;
+}
+
+.leakai-underline-span.leakai-risk-low {
+  border-bottom-color: #007bff;
+}
+
+/* Category-specific styling for underline spans */
+.leakai-underline-span.leakai-category-pii {
+  border-bottom-style: dotted;
+  border-bottom-color: #6c757d;
+}
+
+.leakai-underline-span.leakai-category-health {
+  border-bottom-style: dotted;
+  border-bottom-color: #fd7e14;
+}
+
+.leakai-underline-span.leakai-category-financial,
+.leakai-underline-span.leakai-category-crypto {
+  border-bottom-style: solid;
+}
+
+/* Hover effects for underline spans */
+.leakai-underline-span:hover {
+  border-bottom-width: 3px;
+  opacity: 0.8;
+}
+
+/* Focus styles for accessibility */
+.leakai-underline-span:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 1px;
+  border-bottom-width: 3px;
+}
+
+/* Click feedback for underline spans */
+.leakai-underline-span.clicked {
+  background-color: rgba(0, 123, 255, 0.1);
+  border-bottom-width: 3px;
+  transform: scale(1.02);
+}
+
+/* Multi-line span styling */
+.leakai-underline-span.multiline {
+  border-radius: 0;
+}
+
+/* Overlapping detection styling */
+.leakai-underline-span.overlapping {
+  border-bottom-style: double;
+  border-bottom-width: 3px;
+}
+
+.leakai-underline-span.overlapping-active {
+  background-color: rgba(255, 193, 7, 0.1);
+  border-bottom-width: 4px;
+}
+
+/* Text overlay container */
+.leakai-text-overlay {
+  position: absolute;
+  pointer-events: none;
+  z-index: 999999;
+  overflow: hidden;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Ensure overlay spans can receive pointer events */
+.leakai-text-overlay .leakai-underline-span {
+  pointer-events: auto;
+}
+
+/* Enhanced tooltip positioning for click-based tooltips */
+.leakai-tooltip[data-click-triggered="true"] {
+  z-index: 1000000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid #ddd;
+}
+
+.leakai-tooltip.position-top::before {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid #fff;
+}
+
+.leakai-tooltip.position-bottom::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid #fff;
+}
+
+/* Animation for underline spans appearing */
+@keyframes underlineAppear {
+  from {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+.leakai-underline-span {
+  animation: underlineAppear 0.3s ease-out;
+  transform-origin: left center;
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 768px) {
+  .leakai-underline-span {
+    border-bottom-width: 3px;
+    min-height: 24px; /* Ensure touch targets are large enough */
+  }
+
+  .leakai-underline-span:hover {
+    border-bottom-width: 4px;
+  }
+
+  .leakai-underline-span.clicked {
+    transform: scale(1.05);
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .leakai-underline-span {
+    border-bottom-width: 3px;
+  }
+
+  .leakai-underline-span.leakai-risk-high {
+    border-bottom-color: #ff0000;
+  }
+
+  .leakai-underline-span.leakai-risk-medium {
+    border-bottom-color: #ff8800;
+  }
+
+  .leakai-underline-span.leakai-risk-low {
+    border-bottom-color: #0066cc;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .leakai-underline-span {
+    transition: none;
+    animation: none;
+  }
+
+  .leakai-underline-span.clicked {
+    transform: none;
   }
 }
