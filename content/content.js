@@ -30,6 +30,7 @@ window.LeakAILogger = {
 /**
  * TooltipManager class - Manages tooltip display for detected sensitive data
  * Handles tooltip creation, positioning, and content generation
+ * Enhanced for click-based interactions with precise text underlining
  */
 class TooltipManager {
     constructor() {
@@ -38,8 +39,12 @@ class TooltipManager {
         this.hideDelay = 500; // 500ms delay before hiding tooltip (increased)
         this.showTimer = null;
         this.hideTimer = null;
+        this.clickOutsideHandler = null;
         
-        window.LeakAILogger.log('LeakAI TooltipManager initialized');
+        // Initialize click-outside handling
+        this._initializeClickOutsideHandling();
+        
+        window.LeakAILogger.log('LeakAI TooltipManager initialized with click-based interactions');
     }
 
     /**
@@ -75,8 +80,95 @@ class TooltipManager {
     }
 
     /**
+     * Show tooltip on click for underlined text spans (Requirement 5.1)
+     * @param {HTMLElement} targetSpan - Underlined text span that was clicked
+     * @param {Object} detection - Detection result
+     * @param {Object} position - Position coordinates {x, y}
+     */
+    showTooltipOnClick(targetSpan, detection, position) {
+        if (!targetSpan || !detection) {
+            return;
+        }
+
+        // Clear any existing timers and tooltips
+        this._clearTimers();
+        this._removeTooltip();
+
+        // Create and show tooltip immediately (no delay for clicks)
+        this._createAndShowTooltip(targetSpan, detection, position);
+        
+        // Enable click-outside handling to hide tooltip (Requirement 5.2)
+        this._enableClickOutsideHandling();
+        
+        window.LeakAILogger.log('LeakAI tooltip shown on click for:', detection.type);
+    }
+
+    /**
+     * Hide tooltip when clicking outside of underlined text (Requirement 5.2)
+     * @param {Event} event - Click event
+     */
+    hideTooltipOnClickOutside(event) {
+        if (!this.currentTooltip) {
+            return;
+        }
+
+        // Check if click is on an underlined text span
+        if (this.isClickOnUnderlinedText(event)) {
+            return; // Don't hide if clicking on another underlined text
+        }
+
+        // Check if click is on the tooltip itself
+        if (this.currentTooltip.contains(event.target)) {
+            return; // Don't hide if clicking on tooltip
+        }
+
+        // Hide tooltip immediately
+        this.hideTooltip(true);
+        this._disableClickOutsideHandling();
+        
+        window.LeakAILogger.log('LeakAI tooltip hidden on click outside');
+    }
+
+    /**
+     * Check if a click event is on underlined text (Requirement 5.6)
+     * @param {Event} event - Click event
+     * @returns {boolean} True if click is on underlined text
+     */
+    isClickOnUnderlinedText(event) {
+        if (!event || !event.target) {
+            return false;
+        }
+
+        // Check if the clicked element is an underlined text span
+        const span = event.target.closest('.leakai-underline-span');
+        return span !== null;
+    }
+
+    /**
+     * Get detection data from an underlined text span
+     * @param {HTMLElement} span - Underlined text span element
+     * @returns {Object|null} Detection object or null if not found
+     */
+    getDetectionFromSpan(span) {
+        if (!span) {
+            return null;
+        }
+
+        try {
+            const detectionData = span.getAttribute('data-leakai-detection');
+            if (detectionData) {
+                return JSON.parse(detectionData);
+            }
+        } catch (error) {
+            console.error('LeakAI failed to parse detection data from span:', error);
+        }
+
+        return null;
+    }
+
+    /**
      * Create and show tooltip
-     * @param {Element} targetElement - Target element
+     * @param {Element} targetElement - Target element (input or underlined span)
      * @param {Object} detection - Detection result
      * @param {Object} position - Position coordinates
      */
@@ -86,6 +178,11 @@ class TooltipManager {
 
         // Create tooltip element
         const tooltip = this._createTooltipElement(detection, targetElement);
+        
+        // Mark if this tooltip was triggered by a click on underlined text
+        if (targetElement && targetElement.classList.contains('leakai-underline-span')) {
+            tooltip.setAttribute('data-click-triggered', 'true');
+        }
         
         // Add to document
         document.body.appendChild(tooltip);
@@ -274,9 +371,9 @@ class TooltipManager {
     }
 
     /**
-     * Position tooltip relative to target element
+     * Position tooltip relative to target element or clicked underlined text
      * @param {Element} tooltip - Tooltip element
-     * @param {Element} targetElement - Target element
+     * @param {Element} targetElement - Target element (input or underlined span)
      * @param {Object} position - Position coordinates
      */
     _positionTooltip(tooltip, targetElement, position) {
@@ -289,26 +386,53 @@ class TooltipManager {
         let x = position.x;
         let y = position.y;
         
-        // Adjust horizontal position to keep tooltip in viewport
-        if (x + tooltipRect.width > viewportWidth) {
-            x = viewportWidth - tooltipRect.width - 10;
-        }
-        if (x < 10) {
-            x = 10;
-        }
-        
-        // Position above or below based on available space
-        const spaceAbove = position.y - scrollY;
-        const spaceBelow = viewportHeight - (position.y - scrollY);
-        
-        if (spaceBelow < tooltipRect.height + 20 && spaceAbove > tooltipRect.height + 20) {
-            // Position above
-            y = position.y - tooltipRect.height - 10;
-            tooltip.classList.add('position-top');
+        // Enhanced positioning for underlined text spans (Requirement 5.1)
+        if (targetElement && targetElement.classList.contains('leakai-underline-span')) {
+            const spanRect = targetElement.getBoundingClientRect();
+            
+            // Position tooltip relative to the center of the clicked span
+            x = spanRect.left + (spanRect.width / 2) - (tooltipRect.width / 2);
+            y = spanRect.bottom + 5; // Position just below the underlined text
+            
+            // Ensure tooltip doesn't go off-screen horizontally
+            if (x + tooltipRect.width > viewportWidth - 10) {
+                x = viewportWidth - tooltipRect.width - 10;
+            }
+            if (x < 10) {
+                x = 10;
+            }
+            
+            // Check if there's enough space below, otherwise position above
+            const spaceBelow = viewportHeight - (spanRect.bottom - scrollY);
+            if (spaceBelow < tooltipRect.height + 20) {
+                y = spanRect.top - tooltipRect.height - 5;
+                tooltip.classList.add('position-top');
+            } else {
+                tooltip.classList.add('position-bottom');
+            }
         } else {
-            // Position below
-            y = position.y + 10; // Reduced gap to make tooltip closer
-            tooltip.classList.add('position-bottom');
+            // Original positioning logic for element-level tooltips
+            // Adjust horizontal position to keep tooltip in viewport
+            if (x + tooltipRect.width > viewportWidth) {
+                x = viewportWidth - tooltipRect.width - 10;
+            }
+            if (x < 10) {
+                x = 10;
+            }
+            
+            // Position above or below based on available space
+            const spaceAbove = position.y - scrollY;
+            const spaceBelow = viewportHeight - (position.y - scrollY);
+            
+            if (spaceBelow < tooltipRect.height + 20 && spaceAbove > tooltipRect.height + 20) {
+                // Position above
+                y = position.y - tooltipRect.height - 10;
+                tooltip.classList.add('position-top');
+            } else {
+                // Position below
+                y = position.y + 10; // Reduced gap to make tooltip closer
+                tooltip.classList.add('position-bottom');
+            }
         }
         
         // Apply position
@@ -320,7 +444,7 @@ class TooltipManager {
      * Add event listeners to tooltip
      * @param {Element} tooltip - Tooltip element
      * @param {Object} detection - Detection result
-     * @param {Element} targetElement - Target element
+     * @param {Element} targetElement - Target element (input or underlined span)
      */
     _addTooltipEventListeners(tooltip, detection, targetElement = null) {
         // Handle action button clicks
@@ -333,26 +457,57 @@ class TooltipManager {
                 const action = button.getAttribute('data-action');
                 window.LeakAILogger.log(`LeakAI tooltip action clicked: ${action} for ${detection.type}`);
                 
+                // Find the actual input element for actions
+                let inputElement = targetElement;
+                if (targetElement && targetElement.classList.contains('leakai-underline-span')) {
+                    // If target is an underlined span, find the associated input element
+                    const overlay = targetElement.closest('.leakai-text-overlay');
+                    if (overlay) {
+                        // Get input element from overlay data
+                        const overlayContainer = overlay.parentElement;
+                        if (overlayContainer && window.LeakAI && window.LeakAI.textOverlayManager) {
+                            // Find the input element associated with this overlay
+                            for (const [input, overlayData] of window.LeakAI.textOverlayManager.overlays) {
+                                if (overlayData.element === overlay) {
+                                    inputElement = input;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                
                 // Handle undo action specially
-                if (action === 'undo' && targetElement && window.LeakAI && window.LeakAI.actionMenu) {
-                    window.LeakAI.actionMenu.undoLastAction(targetElement);
+                if (action === 'undo' && inputElement && window.LeakAI && window.LeakAI.actionMenu) {
+                    window.LeakAI.actionMenu.undoLastAction(inputElement);
                 } else if (window.LeakAI && window.LeakAI.actionMenu) {
                     // Execute the action through the action menu system
                     window.LeakAI.actionMenu.executeAction(action, detection, tooltip);
                 }
                 
-                // Hide the tooltip after action
+                // Hide the tooltip after action and disable click-outside handling
                 this.hideTooltip(true);
+                this._disableClickOutsideHandling();
             });
         });
 
-        // Keep tooltip visible when hovering over it
+        // For click-based tooltips, we don't need hover behavior
+        // Instead, prevent the tooltip from closing when clicking on it
+        tooltip.addEventListener('click', (event) => {
+            event.stopPropagation(); // Prevent click-outside handling
+        });
+
+        // Keep tooltip visible when hovering over it (for better UX)
         tooltip.addEventListener('mouseenter', () => {
             this._clearTimers();
         });
 
+        // Only hide on mouse leave if not in click mode
         tooltip.addEventListener('mouseleave', () => {
-            this.hideTooltip();
+            // Only auto-hide if tooltip was shown via hover, not click
+            if (!tooltip.hasAttribute('data-click-triggered')) {
+                this.hideTooltip();
+            }
         });
     }
 
@@ -363,6 +518,9 @@ class TooltipManager {
         if (this.currentTooltip) {
             this.currentTooltip.remove();
             this.currentTooltip = null;
+            
+            // Disable click-outside handling when tooltip is removed
+            this._disableClickOutsideHandling();
         }
     }
 
@@ -396,7 +554,41 @@ class TooltipManager {
     isVisible() {
         return this.currentTooltip !== null;
     }
+
+    /**
+     * Initialize click-outside handling system
+     * @private
+     */
+    _initializeClickOutsideHandling() {
+        this.clickOutsideHandler = (event) => {
+            this.hideTooltipOnClickOutside(event);
+        };
+    }
+
+    /**
+     * Enable click-outside handling
+     * @private
+     */
+    _enableClickOutsideHandling() {
+        if (this.clickOutsideHandler) {
+            // Use capture phase to ensure we catch clicks before other handlers
+            document.addEventListener('click', this.clickOutsideHandler, true);
+        }
+    }
+
+    /**
+     * Disable click-outside handling
+     * @private
+     */
+    _disableClickOutsideHandling() {
+        if (this.clickOutsideHandler) {
+            document.removeEventListener('click', this.clickOutsideHandler, true);
+        }
+    }
 }
+
+// Note: OverlayEventHandler is now implemented in patterns/overlay-event-handler.js
+// This placeholder class maintains compatibility until full integration
 
 /**
  * UIRenderer class - Handles visual indicators for detected sensitive data
@@ -407,8 +599,9 @@ class UIRenderer {
         this.renderedElements = new Map(); // Track elements with rendered detections
         this.detectionSpans = new Map(); // Track detection span elements
         this.tooltipManager = new TooltipManager();
+        this.overlayEventHandler = null; // Will be initialized when TextOverlayManager is available
         
-        window.LeakAILogger.log('LeakAI UIRenderer initialized');
+        window.LeakAILogger.log('LeakAI UIRenderer initialized with enhanced tooltip system');
     }
 
     /**
@@ -431,7 +624,17 @@ class UIRenderer {
 
             window.LeakAILogger.log(`LeakAI rendering ${detections.length} detections for ${element.tagName}`);
 
-            // Use non-intrusive visual indicators that don't modify the actual input
+            // Try to use precise text overlays first (Requirements 1.1, 1.2)
+            if (this.shouldUsePreciseOverlays(element, detections)) {
+                const overlayRendered = this.renderWithPreciseOverlays(element, detections);
+                
+                if (overlayRendered) {
+                    window.LeakAILogger.log('LeakAI used precise text overlays for rendering');
+                    return;
+                }
+            }
+
+            // Fallback to non-intrusive visual indicators
             this._renderNonIntrusiveDetections(element, detections);
 
             // Store rendered detections
@@ -452,6 +655,16 @@ class UIRenderer {
         }
 
         try {
+            // Clear precise overlays if present (lifecycle management)
+            if (element.classList.contains('leakai-has-overlay') && 
+                window.LeakAI && window.LeakAI.textOverlayManager) {
+                window.LeakAI.textOverlayManager.destroyOverlay(element);
+                element.classList.remove('leakai-has-overlay');
+                
+                // Clean up overlay update listeners
+                this._cleanupOverlayUpdateListeners(element);
+            }
+
             // Remove visual indicators without touching the input content
             this._clearNonIntrusiveDetections(element);
 
@@ -598,7 +811,17 @@ class UIRenderer {
      * @param {Array} detections - Detection results
      */
     _addElementEventListeners(element, detections) {
-        // Store reference to bound functions for later removal
+        // Check if element has precise text overlays
+        const hasOverlay = element.classList.contains('leakai-has-overlay');
+        
+        if (hasOverlay) {
+            // For elements with precise overlays, tooltips are handled by click events on underlined spans
+            // No need to add hover listeners to the element itself
+            window.LeakAILogger.log('LeakAI element has overlay, skipping hover listeners');
+            return;
+        }
+
+        // For elements without overlays, use traditional hover-based tooltips
         const mouseEnterHandler = (event) => {
             const rect = element.getBoundingClientRect();
             const position = {
@@ -680,14 +903,336 @@ class UIRenderer {
     }
 
     /**
+     * Initialize TextOverlayManager integration for precise text underlining
+     * This method should be called when TextOverlayManager is available
+     */
+    initializeTextOverlayIntegration() {
+        if (window.LeakAI && window.LeakAI.textOverlayManager) {
+            // Initialize the comprehensive event handler
+            if (!this.overlayEventHandler && typeof OverlayEventHandler !== 'undefined') {
+                this.overlayEventHandler = new OverlayEventHandler(
+                    this.tooltipManager,
+                    window.LeakAI.textOverlayManager
+                );
+            }
+            
+            // Set the event handler for the TextOverlayManager
+            window.LeakAI.textOverlayManager.eventHandler = this.overlayEventHandler;
+            
+            // Set up periodic cleanup for performance maintenance (Requirement 4.4)
+            if (!this.overlayCleanupInterval) {
+                this.overlayCleanupInterval = setInterval(() => {
+                    this._cleanupInactiveOverlays();
+                }, 60000); // Clean up every minute
+            }
+            
+            window.LeakAILogger.log('LeakAI TextOverlayManager integration initialized with comprehensive event handling and performance monitoring');
+        }
+    }
+
+    /**
+     * Check if an element should use precise text overlays instead of element-level styling
+     * @param {Element} element - Input element
+     * @param {Array} detections - Detection results
+     * @returns {boolean} True if should use overlays
+     */
+    shouldUsePreciseOverlays(element, detections) {
+        // Check if TextOverlayManager is available
+        if (!window.LeakAI || !window.LeakAI.textOverlayManager) {
+            return false;
+        }
+
+        // Check if element is suitable for precise overlays (Requirement 2.1, 2.2, 2.3)
+        const tagName = element.tagName.toLowerCase();
+        const isTextInput = tagName === 'input' || tagName === 'textarea' || element.contentEditable === 'true';
+        
+        if (!isTextInput) {
+            return false;
+        }
+
+        // Check if detections have proper indices for precise positioning
+        const hasValidIndices = detections.some(detection => 
+            detection.startIndex !== undefined && 
+            detection.endIndex !== undefined &&
+            (detection.match || detection.text) // Check for either match or text property
+        );
+
+        if (!hasValidIndices) {
+            return false;
+        }
+
+        // Performance check - avoid overlays for very long text (Requirement 4.4)
+        const text = this._getElementText(element);
+        if (text.length > 10000) {
+            window.LeakAILogger.log('LeakAI skipping precise overlays for long text (>10k chars)');
+            return false;
+        }
+
+        // Check for complex styling that might interfere (Requirement 6.6)
+        const computedStyle = window.getComputedStyle(element);
+        const hasComplexTransforms = computedStyle.transform !== 'none' || 
+                                   computedStyle.perspective !== 'none';
+        
+        if (hasComplexTransforms) {
+            window.LeakAILogger.log('LeakAI skipping precise overlays due to complex CSS transforms');
+            return false;
+        }
+
+        // Check if element is visible and has dimensions
+        const rect = element.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) {
+            return false;
+        }
+
+        // Check system performance before enabling overlays (Requirement 4.4)
+        if (!this._canHandleOverlayPerformance()) {
+            return false;
+        }
+
+        // All checks passed - use precise overlays
+        return true;
+    }
+
+    /**
+     * Render detections using precise text overlays when possible
+     * @param {Element} element - Input element
+     * @param {Array} detections - Detection results
+     * @returns {boolean} True if overlay was successfully created
+     */
+    renderWithPreciseOverlays(element, detections) {
+        if (!window.LeakAI || !window.LeakAI.textOverlayManager) {
+            return false;
+        }
+
+        try {
+            // Clear any existing overlay first (lifecycle management)
+            if (element.classList.contains('leakai-has-overlay')) {
+                window.LeakAI.textOverlayManager.destroyOverlay(element);
+                element.classList.remove('leakai-has-overlay');
+            }
+
+            // Create overlay with precise underlines
+            const overlayData = window.LeakAI.textOverlayManager.createOverlay(element, detections);
+            
+            if (overlayData) {
+                // Mark element as having overlay to skip hover listeners
+                element.classList.add('leakai-has-overlay');
+                
+                // Store overlay data for tracking and lifecycle management
+                this.renderedElements.set(element, detections);
+                
+                // Set up overlay update listeners for text changes (Requirement 2.4)
+                this._setupOverlayUpdateListeners(element, detections);
+                
+                window.LeakAILogger.log(`LeakAI rendered precise overlays for ${detections.length} detections`);
+                return true;
+            } else {
+                window.LeakAILogger.log('LeakAI failed to create overlay, falling back to element-level styling');
+            }
+        } catch (error) {
+            console.error('LeakAI failed to render precise overlays:', error);
+            window.LeakAILogger.log('LeakAI falling back to element-level styling due to error');
+        }
+
+        return false;
+    }
+
+    /**
+     * Set up listeners to update overlays when text changes
+     * @param {Element} element - Input element
+     * @param {Array} detections - Current detections
+     * @private
+     */
+    _setupOverlayUpdateListeners(element, detections) {
+        if (!element || !window.LeakAI || !window.LeakAI.textOverlayManager) {
+            return;
+        }
+
+        // Throttled update function to avoid excessive overlay updates (Requirement 4.4)
+        let updateTimeout = null;
+        const throttledUpdate = () => {
+            if (updateTimeout) {
+                clearTimeout(updateTimeout);
+            }
+            
+            updateTimeout = setTimeout(() => {
+                try {
+                    // Check if element still has overlay
+                    if (element.classList.contains('leakai-has-overlay')) {
+                        // Get current detections for this element
+                        const currentDetections = this.renderedElements.get(element);
+                        if (currentDetections) {
+                            // Update overlay with current detections
+                            window.LeakAI.textOverlayManager.updateOverlay(element, currentDetections);
+                        }
+                    }
+                } catch (error) {
+                    console.error('LeakAI failed to update overlay:', error);
+                }
+            }, 100); // 100ms throttle
+        };
+
+        // Add input event listener for text changes
+        const inputHandler = throttledUpdate;
+        element.addEventListener('input', inputHandler, { passive: true });
+
+        // Add scroll event listener for overlay synchronization
+        const scrollHandler = () => {
+            if (window.LeakAI && window.LeakAI.textOverlayManager) {
+                const overlayData = window.LeakAI.textOverlayManager.overlays.get(element);
+                if (overlayData) {
+                    window.LeakAI.textOverlayManager.handleInputScroll(element, overlayData.element);
+                }
+            }
+        };
+        element.addEventListener('scroll', scrollHandler, { passive: true });
+
+        // Store handlers for cleanup
+        if (!element._leakaiOverlayHandlers) {
+            element._leakaiOverlayHandlers = [];
+        }
+        
+        element._leakaiOverlayHandlers.push(
+            { event: 'input', handler: inputHandler },
+            { event: 'scroll', handler: scrollHandler }
+        );
+    }
+
+    /**
+     * Clean up overlay update listeners
+     * @param {Element} element - Input element
+     * @private
+     */
+    _cleanupOverlayUpdateListeners(element) {
+        if (element._leakaiOverlayHandlers) {
+            element._leakaiOverlayHandlers.forEach(({ event, handler }) => {
+                element.removeEventListener(event, handler);
+            });
+            delete element._leakaiOverlayHandlers;
+        }
+    }
+
+    /**
+     * Update existing overlay with new detections (lifecycle management)
+     * @param {Element} element - Input element
+     * @param {Array} detections - New detection results
+     */
+    updateOverlayDetections(element, detections) {
+        if (!element || !window.LeakAI || !window.LeakAI.textOverlayManager) {
+            return;
+        }
+
+        // Check if element has an overlay
+        if (!element.classList.contains('leakai-has-overlay')) {
+            // No overlay exists, create one if detections are present
+            if (detections && detections.length > 0 && this.shouldUsePreciseOverlays(element, detections)) {
+                this.renderWithPreciseOverlays(element, detections);
+            }
+            return;
+        }
+
+        try {
+            if (!detections || detections.length === 0) {
+                // No detections, destroy overlay
+                window.LeakAI.textOverlayManager.destroyOverlay(element);
+                element.classList.remove('leakai-has-overlay');
+                this._cleanupOverlayUpdateListeners(element);
+                this.renderedElements.delete(element);
+            } else {
+                // Update overlay with new detections
+                window.LeakAI.textOverlayManager.updateOverlay(element, detections);
+                this.renderedElements.set(element, detections);
+            }
+            
+            window.LeakAILogger.log(`LeakAI updated overlay with ${detections ? detections.length : 0} detections`);
+        } catch (error) {
+            console.error('LeakAI failed to update overlay detections:', error);
+            // Fall back to recreating the overlay
+            this.clearDetections(element);
+            if (detections && detections.length > 0) {
+                this.renderDetections(element, detections);
+            }
+        }
+    }
+
+    /**
+     * Check if the system can handle overlay performance requirements
+     * @returns {boolean} True if system can handle overlays
+     * @private
+     */
+    _canHandleOverlayPerformance() {
+        // Check if we have too many active overlays (Requirement 4.4)
+        if (window.LeakAI && window.LeakAI.textOverlayManager) {
+            const overlayCount = window.LeakAI.textOverlayManager.overlays.size;
+            if (overlayCount > 10) {
+                window.LeakAILogger.log('LeakAI too many active overlays, using fallback styling');
+                return false;
+            }
+        }
+
+        // Check if we have too many rendered elements
+        if (this.renderedElements.size > 20) {
+            window.LeakAILogger.log('LeakAI too many rendered elements, using fallback styling');
+            return false;
+        }
+
+        // Check basic browser performance indicators
+        if (typeof performance !== 'undefined' && performance.memory) {
+            const memoryUsage = performance.memory.usedJSHeapSize / performance.memory.jsHeapSizeLimit;
+            if (memoryUsage > 0.8) {
+                window.LeakAILogger.log('LeakAI high memory usage detected, using fallback styling');
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Clean up inactive overlays to maintain performance
+     * @private
+     */
+    _cleanupInactiveOverlays() {
+        if (!window.LeakAI || !window.LeakAI.textOverlayManager) {
+            return;
+        }
+
+        const now = Date.now();
+        const inactiveThreshold = 5 * 60 * 1000; // 5 minutes
+
+        // Check for elements that are no longer in the DOM
+        for (const [element, overlayData] of window.LeakAI.textOverlayManager.overlays) {
+            if (!document.contains(element)) {
+                window.LeakAI.textOverlayManager.destroyOverlay(element);
+                this.renderedElements.delete(element);
+                window.LeakAILogger.log('LeakAI cleaned up overlay for removed element');
+            }
+        }
+
+        // Clean up rendered elements that are no longer in DOM
+        for (const element of this.renderedElements.keys()) {
+            if (!document.contains(element)) {
+                this.clearDetections(element);
+                window.LeakAILogger.log('LeakAI cleaned up detections for removed element');
+            }
+        }
+    }
+
+    /**
      * Get statistics about rendered detections
      * @returns {Object} Statistics
      */
     getStats() {
+        const overlayStats = window.LeakAI && window.LeakAI.textOverlayManager ? 
+            { overlayCount: window.LeakAI.textOverlayManager.overlays.size } : 
+            { overlayCount: 0 };
+
         return {
             renderedElements: this.renderedElements.size,
             totalDetectionSpans: Array.from(this.detectionSpans.values()).reduce((sum, spans) => sum + spans.length, 0),
-            tooltipVisible: this.tooltipManager.isVisible()
+            tooltipVisible: this.tooltipManager.isVisible(),
+            canHandleOverlayPerformance: this._canHandleOverlayPerformance(),
+            ...overlayStats
         };
     }
 }
@@ -1007,7 +1552,25 @@ class ActionMenu {
      * @returns {Element|null} Input element
      */
     _findInputElementForDetection(detection, tooltipElement) {
-        // Look for elements with detection data that matches
+        // First, try to find element from overlay system (for precise overlays)
+        if (window.LeakAI && window.LeakAI.contentScript && window.LeakAI.contentScript.uiRenderer) {
+            const uiRenderer = window.LeakAI.contentScript.uiRenderer;
+            
+            // Check rendered elements map for overlay-based detections
+            for (const [element, detections] of uiRenderer.renderedElements) {
+                const matchingDetection = detections.find(d => 
+                    d.text === detection.text && 
+                    d.type === detection.type && 
+                    d.startIndex === detection.startIndex
+                );
+                
+                if (matchingDetection) {
+                    return element;
+                }
+            }
+        }
+
+        // Fallback: Look for elements with detection data attributes (for element-level styling)
         const elementsWithDetections = document.querySelectorAll('[data-leakai-detections]');
         
         for (const element of elementsWithDetections) {
@@ -1024,6 +1587,19 @@ class ActionMenu {
                 }
             } catch (error) {
                 console.warn('LeakAI failed to parse detection data:', error);
+            }
+        }
+        
+        // Last resort: try to find from tooltip context if available
+        if (tooltipElement) {
+            const overlay = tooltipElement.closest('.leakai-text-overlay');
+            if (overlay && window.LeakAI && window.LeakAI.textOverlayManager) {
+                // Find input element associated with this overlay
+                for (const [input, overlayData] of window.LeakAI.textOverlayManager.overlays) {
+                    if (overlayData.element === overlay) {
+                        return input;
+                    }
+                }
             }
         }
         
@@ -2986,7 +3562,25 @@ function initializeContentScript() {
         window.LeakAI.contentScript = contentScript;
         window.LeakAI.actionMenu = contentScript.actionMenu;
         
+        // Initialize TextOverlayManager and TextMeasurementEngine for precise text underlining
+        try {
+            if (typeof TextMeasurementEngine !== 'undefined' && typeof TextOverlayManager !== 'undefined') {
+                window.LeakAI.textMeasurementEngine = new TextMeasurementEngine();
+                window.LeakAI.textOverlayManager = new TextOverlayManager(window.LeakAI.textMeasurementEngine);
+                window.LeakAILogger.log('LeakAI TextOverlayManager and TextMeasurementEngine initialized');
+            } else {
+                window.LeakAILogger.log('LeakAI TextOverlayManager or TextMeasurementEngine not available, using fallback styling');
+            }
+        } catch (error) {
+            console.error('LeakAI failed to initialize TextOverlayManager:', error);
+        }
+        
         contentScript.initialize().then(() => {
+            // Initialize TextOverlayManager integration if available
+            if (contentScript.uiRenderer) {
+                contentScript.uiRenderer.initializeTextOverlayIntegration();
+            }
+            
             console.log('LeakAI ContentScript ready');
         }).catch(error => {
             console.error('LeakAI ContentScript initialization failed:', error);
