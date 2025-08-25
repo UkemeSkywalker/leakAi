@@ -845,7 +845,7 @@ class TextOverlayManager {
             
             // Special handling for dotted patterns on specific categories
             if (category === 'pii' || category === 'health') {
-                span.style.borderBottomStyle = 'dotted';
+                span.style.borderBottomStyle = 'solid';
                 
                 // Use category-specific colors for dotted patterns
                 if (category === 'pii') {
@@ -1146,15 +1146,15 @@ class TextOverlayManager {
     _getUnderlineStyle(category) {
         switch (category) {
             case 'pii':
-                return 'dotted'; // Dotted for PII
+                return '`solid`'; // Dotted for PII
             case 'health':
-                return 'dotted'; // Dotted for health data
+                return 'solif'; // Dotted for health data
             case 'financial':
                 return 'solid'; // Solid for financial data
             case 'crypto':
                 return 'solid'; // Solid for crypto data
             case 'technical':
-                return 'dashed'; // Dashed for technical secrets
+                return 'solid'; // Dashed for technical secrets
             default:
                 return 'solid'; // Solid for general detections
         }

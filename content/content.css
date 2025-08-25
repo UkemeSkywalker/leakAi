@@ -25,12 +25,12 @@
 }
 
 .leakai-has-detections.use-border.leakai-category-pii {
-  border-bottom-style: dotted !important;
+  border-bottom-style: solid !important;
   border-bottom-color: #6c757d !important;
 }
 
 .leakai-has-detections.use-border.leakai-category-health {
-  border-bottom-style: dotted !important;
+  border-bottom-style: solid !important;
   border-bottom-color: #fd7e14 !important;
 }
 
@@ -88,25 +88,13 @@ div[role="textbox"].leakai-has-detections::after {
   background: #007bff !important; /* Solid blue for low risk */
 }
 
-/* Dotted effect for certain categories */
+/* Solid effect for all categories */
 .leakai-category-pii::after {
-  background: repeating-linear-gradient(
-    90deg,
-    #6c757d 0px,
-    #6c757d 4px,
-    transparent 4px,
-    transparent 8px
-  );
+  background: #6c757d !important;
 }
 
 .leakai-category-health::after {
-  background: repeating-linear-gradient(
-    90deg,
-    #fd7e14 0px,
-    #fd7e14 3px,
-    transparent 3px,
-    transparent 6px
-  );
+  background: #fd7e14 !important;
 }
 
 /* Hover effects for detected elements */
@@ -879,12 +867,12 @@ div[role="textbox"].leakai-has-detections:hover::after {
 
 /* Category-specific styling (Requirements 3.4, 3.5, 3.6) */
 .leakai-underline-span.leakai-category-pii {
-  border-bottom-style: dotted;
+  border-bottom-style: solid;
   border-bottom-color: #6c757d; /* Gray for PII */
 }
 
 .leakai-underline-span.leakai-category-health {
-  border-bottom-style: dotted;
+  border-bottom-style: solid;
   border-bottom-color: #fd7e14; /* Orange for health */
 }
 
@@ -894,7 +882,7 @@ div[role="textbox"].leakai-has-detections:hover::after {
 }
 
 .leakai-underline-span.leakai-category-technical {
-  border-bottom-style: dashed;
+  border-bottom-style: solid;
 }
 
 /* Overlapping detection styling */
@@ -932,24 +920,20 @@ div[role="textbox"].leakai-has-detections:hover::after {
   background-size: 100% 2px;
 }
 
-/* Dotted pattern for categories using background image */
+/* Solid pattern for categories using background image */
 .leakai-underline-span.leakai-category-pii.multiline {
-  background-image: repeating-linear-gradient(
+  background-image: linear-gradient(
     to right,
-    var(--leakai-risk-color, #6c757d) 0px,
-    var(--leakai-risk-color, #6c757d) 3px,
-    transparent 3px,
-    transparent 6px
+    var(--leakai-risk-color, #6c757d) 0%,
+    var(--leakai-risk-color, #6c757d) 100%
   );
 }
 
 .leakai-underline-span.leakai-category-health.multiline {
-  background-image: repeating-linear-gradient(
+  background-image: linear-gradient(
     to right,
-    var(--leakai-risk-color, #fd7e14) 0px,
-    var(--leakai-risk-color, #fd7e14) 3px,
-    transparent 3px,
-    transparent 6px
+    var(--leakai-risk-color, #fd7e14) 0%,
+    var(--leakai-risk-color, #fd7e14) 100%
   );
 }
 
@@ -1021,8 +1005,6 @@ textarea.leakai-has-detections,
   z-index: 999998;
   min-height: 2px; /* Ensure visibility */
   background-color: transparent;
-  /* Temporary debugging background - remove in production */
-  background-color: rgba(255, 255, 0, 0.3) !important;
 }
 
 /* Risk level colors for underline spans */
@@ -1040,12 +1022,12 @@ textarea.leakai-has-detections,
 
 /* Category-specific styling for underline spans */
 .leakai-underline-span.leakai-category-pii {
-  border-bottom-style: dotted;
+  border-bottom-style: solid;
   border-bottom-color: #6c757d;
 }
 
 .leakai-underline-span.leakai-category-health {
-  border-bottom-style: dotted;
+  border-bottom-style: solid;
   border-bottom-color: #fd7e14;
 }
 
